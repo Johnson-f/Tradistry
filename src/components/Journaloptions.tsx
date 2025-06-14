@@ -31,32 +31,32 @@ import {
   useReactTable,
   getCoreRowModel,
   flexRender,
-  type ColumnDef
+  type ColumnDef,
 } from "@tanstack/react-table";
 
 interface OptionPayload {
-    id?: string; // Optional for new entries
-    symbol: string;
-    trade_type?: string; // Optional for compatibility
-    order_type: string;
-    number_contracts: number;
-    strike_price: number;
-    premium?: number; // Optional for compatibility
-    expiration_date: string;
-    commissions: number;
-    user_id?: string; // Optional for compatibility
-    strategy?: string; // Optional for compatibility
-    option_type?: string; // Optional for compatibility
-    entry_price?: number; // Optional for compatibility
-    implied_volatility?: number; // Optional for compatibility
-    entry_date?: string; // Optional for compatibility
-    exit_price?: number | null; // Added for compatibility
-    exit_date?: string; // Optional for compatibility
+  id?: string; // Optional for new entries
+  symbol: string;
+  trade_type?: string; // Optional for compatibility
+  order_type: string;
+  number_contracts: number;
+  strike_price: number;
+  premium?: number; // Optional for compatibility
+  expiration_date: string;
+  commissions: number;
+  user_id?: string; // Optional for compatibility
+  strategy?: string; // Optional for compatibility
+  option_type?: string; // Optional for compatibility
+  entry_price?: number; // Optional for compatibility
+  implied_volatility?: number; // Optional for compatibility
+  entry_date?: string; // Optional for compatibility
+  exit_price?: number | null; // Added for compatibility
+  exit_date?: string; // Optional for compatibility
 }
 
 const JournalOptionsComponent: React.FC<{ onViewEntries: () => void }> = ({
-    onViewEntries,
-  }) => {
+  onViewEntries,
+}) => {
   const { insertOption, updateOption, deleteOption, selectOptions, options } =
     useJournalOptions();
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -119,19 +119,19 @@ const JournalOptionsComponent: React.FC<{ onViewEntries: () => void }> = ({
   // Reset form
   const resetForm = () => {
     setFormData({
-        symbol: "",
-        trade_type: "Call",
-        order_type: "Limit",
-        number_contracts: 0,
-        strike_price: 0,
-        premium: 0,
-        expiration_date: "",
-        commissions: 0,
-        strategy: "",
-        option_type: "",
-        entry_price: 0,
-        implied_volatility: 0,
-        entry_date: "",
+      symbol: "",
+      trade_type: "Call",
+      order_type: "Limit",
+      number_contracts: 0,
+      strike_price: 0,
+      premium: 0,
+      expiration_date: "",
+      commissions: 0,
+      strategy: "",
+      option_type: "",
+      entry_price: 0,
+      implied_volatility: 0,
+      entry_date: "",
     });
     setSelectedOptionId(null); // Reset selected option ID
   };
@@ -156,85 +156,87 @@ const JournalOptionsComponent: React.FC<{ onViewEntries: () => void }> = ({
     }
   };
 
+  // Handle form submission
 
-  // Handle form submission 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-    
-        // Validation
-        if (!formData.symbol.trim()) {
-            toast.error("Symbol is required.");
-            return;
-        }
-    
-        if (formData.number_contracts <= 0) {
-            toast.error("Number of contracts must be greater than 0.");
-            return;
-        }
-    
-        if (formData.strike_price <= 0) {
-            toast.error("Strike price must be greater than 0.");
-            return;
-        }
-    
-        if (!formData.expiration_date) {
-            toast.error("Expiration date is required.");
-            return;
-        }
+    // Validation
+    if (!formData.symbol.trim()) {
+      toast.error("Symbol is required.");
+      return;
+    }
 
-        if (!formData.option_type || formData.option_type.length > 4) {
-            toast.error("Option type must be 4 characters or less.");
-        }
-    
-        console.log("Submitting payload:", formData); // Debugging payload
-    
-        try {
-            setIsLoading(true);
+    if (formData.number_contracts <= 0) {
+      toast.error("Number of contracts must be greater than 0.");
+      return;
+    }
 
-            const payload = {
-                ...formData,
-                user_id: formData.user_id || "", // Ensure user_id is provided
-                symbol: formData.symbol.trim(),
-                strategy: formData.strategy || "",
-                option_type: formData.option_type || "",
-                strike_price: formData.strike_price,
-                expiration_date: formData.expiration_date || "",
-                entry_price: formData.entry_price || 0,
-                number_contracts: typeof formData.number_contracts === "number" ? formData.number_contracts : 0,
-                exit_price: formData.exit_price || null,
-                commissions: formData.commissions || 0,
-                order_type: formData.order_type || "",
-                implied_volatility: formData.implied_volatility || 0,
-                entry_date: formData.entry_date || "",
-                exit_date: formData.exit_date || "",
-            };
-    
-            if (selectedOptionId) {
-                await updateOption({
-                    ...payload,
-                    id: selectedOptionId || "",
-                });
-                toast.success("Option updated successfully!");
-            } else {
-                await insertOption(payload); 
-                toast.success("Option added successfully!");
-            }
-            // Refresh the options list
-            await selectOptions();
-            // Reset form and close modal
-            resetForm();
-            onClose();
-        } catch (err) {
-            console.error("Error submitting form:", err);
-            const errorMessage = selectedOptionId
-                ? "Failed to update option. Please try again."
-                : "Failed to add option. Please try again.";
-            toast.error(errorMessage);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    if (formData.strike_price <= 0) {
+      toast.error("Strike price must be greater than 0.");
+      return;
+    }
+
+    if (!formData.expiration_date) {
+      toast.error("Expiration date is required.");
+      return;
+    }
+
+    if (!formData.option_type || formData.option_type.length > 4) {
+      toast.error("Option type must be 4 characters or less.");
+    }
+
+    console.log("Submitting payload:", formData); // Debugging payload
+
+    try {
+      setIsLoading(true);
+
+      const payload = {
+        ...formData,
+        user_id: formData.user_id || "", // Ensure user_id is provided
+        symbol: formData.symbol.trim(),
+        strategy: formData.strategy || "",
+        option_type: formData.option_type || "",
+        strike_price: formData.strike_price,
+        expiration_date: formData.expiration_date || "",
+        entry_price: formData.entry_price || 0,
+        number_contracts:
+          typeof formData.number_contracts === "number"
+            ? formData.number_contracts
+            : 0,
+        exit_price: formData.exit_price || null,
+        commissions: formData.commissions || 0,
+        order_type: formData.order_type || "",
+        implied_volatility: formData.implied_volatility || 0,
+        entry_date: formData.entry_date || "",
+        exit_date: formData.exit_date || "",
+      };
+
+      if (selectedOptionId) {
+        await updateOption({
+          ...payload,
+          id: selectedOptionId || "",
+        });
+        toast.success("Option updated successfully!");
+      } else {
+        await insertOption(payload);
+        toast.success("Option added successfully!");
+      }
+      // Refresh the options list
+      await selectOptions();
+      // Reset form and close modal
+      resetForm();
+      onClose();
+    } catch (err) {
+      console.error("Error submitting form:", err);
+      const errorMessage = selectedOptionId
+        ? "Failed to update option. Please try again."
+        : "Failed to add option. Please try again.";
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Handle option deletion
   const handleDeleteOption = async (optionId: string) => {
@@ -242,7 +244,7 @@ const JournalOptionsComponent: React.FC<{ onViewEntries: () => void }> = ({
     if (!window.confirm("Are you sure you want to delete this option?")) {
       return;
     }
-    
+
     try {
       setIsLoading(true);
       await deleteOption(optionId);
@@ -292,10 +294,18 @@ const JournalOptionsComponent: React.FC<{ onViewEntries: () => void }> = ({
       header: "Actions",
       cell: ({ row }) => (
         <HStack spacing={2}>
-          <Button size="sm" colorScheme="blue" onClick={() => handleSelectOption(row.original.id ?? null)}>
+          <Button
+            size="sm"
+            colorScheme="blue"
+            onClick={() => handleSelectOption(row.original.id ?? null)}
+          >
             Edit
           </Button>
-          <Button size="sm" colorScheme="red" onClick={() => handleDeleteOption(row.original.id || "")}>
+          <Button
+            size="sm"
+            colorScheme="red"
+            onClick={() => handleDeleteOption(row.original.id || "")}
+          >
             Delete
           </Button>
         </HStack>
@@ -339,53 +349,58 @@ const JournalOptionsComponent: React.FC<{ onViewEntries: () => void }> = ({
             alignItems="center"
             mb={4}
           >
-            
             <Box as="h2" fontSize="2xl" fontWeight="bold">
               Options ({options?.length || 0})
               {isLoading && <Spinner size="sm" ml={2} color="whiteAlpha.600" />}
             </Box>
             <HStack spacing={4}>
-            <Button 
-              colorScheme="blue" 
-              onClick={() => handleSelectOption(null)}
-              isDisabled={isLoading}
-            >
-              New Entry
-            </Button>
-            <Button 
-              colorScheme="green" 
-              onClick={onViewEntries}
-              isDisabled={isLoading}
-            >
+              <Button
+                colorScheme="blue"
+                onClick={() => handleSelectOption(null)}
+                isDisabled={isLoading}
+              >
+                New Entry
+              </Button>
+              <Button
+                colorScheme="green"
+                onClick={onViewEntries}
+                isDisabled={isLoading}
+              >
                 Stocks
-            </Button>
+              </Button>
             </HStack>
           </Box>
 
           <Box overflowX="auto">
             <ChakraTable variant="simple" size="sm" width="100%">
               <Thead>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <Tr key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <Th key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
-                        </Th>
-                  ))}
-                </Tr>
-              ))}
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <Tr key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <Th key={header.id}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext(),
+                            )}
+                      </Th>
+                    ))}
+                  </Tr>
+                ))}
               </Thead>
               <Tbody>
-              {table.getRowModel().rows.map((row) => (
-                <Tr key={row.id}>
-                   {row.getVisibleCells().map((cell) => (
-                     <Td key={cell.id}>
-                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                     </Td>
-                   ))}
-                </Tr>
+                {table.getRowModel().rows.map((row) => (
+                  <Tr key={row.id}>
+                    {row.getVisibleCells().map((cell) => (
+                      <Td key={cell.id}>
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
+                        )}
+                      </Td>
+                    ))}
+                  </Tr>
                 ))}
               </Tbody>
             </ChakraTable>
@@ -400,175 +415,177 @@ const JournalOptionsComponent: React.FC<{ onViewEntries: () => void }> = ({
             </ModalHeader>
             <ModalCloseButton />
             <ModalBody pb={6}>
-            <form onSubmit={handleSubmit}>
-                           <FormControl mb={4}>
-                             <FormLabel>Symbol</FormLabel>
-                             <Input
-                               name="symbol"
-                               value={formData.symbol}
-                               onChange={handleChange}
-                               placeholder="(e.g., AAPL)"
-                             />
-                           </FormControl>
-                           <Grid templateColumns="repeat(2, 1fr)" gap={4}>
-                             <GridItem>
-                               <FormControl>
-                                 <FormLabel>Strategy</FormLabel>
-                                 <Select
-                                   name="strategy"
-                                   value={formData.strategy}
-                                   onChange={handleChange}
-                                 >
-                                    <option value="Call">Call</option>
-                                    <option value="Put">Put</option>
-                                    <option value="Straddle">Straddle</option>
-                                    <option value="Strangle">Strangle</option>
-                                    <option value="Short Straddle">Short Straddle</option>
-                                    <option value="Short Strangle">Short Strangle</option>
-                                    <option value="Cash Secured puts">Cash Secured puts</option>
-                                    <option value="Covered Call">Covered Call</option>
-                                 </Select>
-                               </FormControl>
-                             </GridItem>
-                             <GridItem>
-                               <FormControl>
-                                 <FormLabel>Option Type</FormLabel>
-                                 <Input
-                                   name="option_type"
-                                   value={formData.option_type}
-                                   onChange={handleChange}
-                                   placeholder="Call"
-                                   />
-                               </FormControl>
-                             </GridItem>
+              <form onSubmit={handleSubmit}>
+                <FormControl mb={4}>
+                  <FormLabel>Symbol</FormLabel>
+                  <Input
+                    name="symbol"
+                    value={formData.symbol}
+                    onChange={handleChange}
+                    placeholder="(e.g., AAPL)"
+                  />
+                </FormControl>
+                <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+                  <GridItem>
+                    <FormControl>
+                      <FormLabel>Strategy</FormLabel>
+                      <Select
+                        name="strategy"
+                        value={formData.strategy}
+                        onChange={handleChange}
+                      >
+                        <option value="Call">Call</option>
+                        <option value="Put">Put</option>
+                        <option value="Straddle">Straddle</option>
+                        <option value="Strangle">Strangle</option>
+                        <option value="Short Straddle">Short Straddle</option>
+                        <option value="Short Strangle">Short Strangle</option>
+                        <option value="Cash Secured puts">
+                          Cash Secured puts
+                        </option>
+                        <option value="Covered Call">Covered Call</option>
+                      </Select>
+                    </FormControl>
+                  </GridItem>
+                  <GridItem>
+                    <FormControl>
+                      <FormLabel>Option Type</FormLabel>
+                      <Input
+                        name="option_type"
+                        value={formData.option_type}
+                        onChange={handleChange}
+                        placeholder="Call"
+                      />
+                    </FormControl>
+                  </GridItem>
 
-                             <GridItem>
-                               <FormControl>
-                                 <FormLabel>Strike Price</FormLabel>
-                                 <Input
-                                   type="number"
-                                   name="strike_price"
-                                   value={formData.strike_price}
-                                   onChange={handleChange}
-                                   placeholder="0.00"
-                                 />
-                               </FormControl>
-                             </GridItem>
+                  <GridItem>
+                    <FormControl>
+                      <FormLabel>Strike Price</FormLabel>
+                      <Input
+                        type="number"
+                        name="strike_price"
+                        value={formData.strike_price}
+                        onChange={handleChange}
+                        placeholder="0.00"
+                      />
+                    </FormControl>
+                  </GridItem>
 
-                             <GridItem>
-                               <FormControl>
-                                 <FormLabel>Expiration Date</FormLabel>
-                                 <Input
-                                   type="date"
-                                   name="expiration_date"
-                                   value={formData.expiration_date}
-                                   onChange={handleChange}
-                                 />
-                               </FormControl>
-                             </GridItem>
+                  <GridItem>
+                    <FormControl>
+                      <FormLabel>Expiration Date</FormLabel>
+                      <Input
+                        type="date"
+                        name="expiration_date"
+                        value={formData.expiration_date}
+                        onChange={handleChange}
+                      />
+                    </FormControl>
+                  </GridItem>
 
-                             <GridItem>
-                               <FormControl>
-                                 <FormLabel>Entry Price</FormLabel>
-                                 <Input
-                                   type="number"
-                                   name="entry_price"
-                                   value={formData.entry_price}
-                                   onChange={handleChange}
-                                   placeholder="0.00"
-                                 />
-                               </FormControl>
-                             </GridItem>
+                  <GridItem>
+                    <FormControl>
+                      <FormLabel>Entry Price</FormLabel>
+                      <Input
+                        type="number"
+                        name="entry_price"
+                        value={formData.entry_price}
+                        onChange={handleChange}
+                        placeholder="0.00"
+                      />
+                    </FormControl>
+                  </GridItem>
 
-                             <GridItem>
-                               <FormControl>
-                                 <FormLabel>Number of Contracts</FormLabel>
-                                 <Input
-                                   type="number"
-                                   name="number_contracts"
-                                   value={formData.number_contracts}
-                                   onChange={handleChange}
-                                   placeholder="0.00"
-                                 />
-                               </FormControl>
-                             </GridItem>
+                  <GridItem>
+                    <FormControl>
+                      <FormLabel>Number of Contracts</FormLabel>
+                      <Input
+                        type="number"
+                        name="number_contracts"
+                        value={formData.number_contracts}
+                        onChange={handleChange}
+                        placeholder="0.00"
+                      />
+                    </FormControl>
+                  </GridItem>
 
-                             <GridItem>
-                               <FormControl>
-                                 <FormLabel>Exit Price</FormLabel>
-                                 <Input
-                                   type="number"
-                                   name="exit_price"
-                                   value={formData.exit_price || ""}
-                                   onChange={handleChange}
-                                   placeholder="0"
-                                 />
-                               </FormControl>
-                             </GridItem>
-                             <GridItem>
-                               <FormControl>
-                                 <FormLabel>Commissions</FormLabel>
-                                 <Input
-                                   type="number"
-                                   step="0.01"
-                                   name="commissions"
-                                   value={formData.commissions}
-                                   onChange={handleChange}
-                                   placeholder="0.00"
-                                 />
-                               </FormControl>
-                             </GridItem>
-                             <GridItem>
-                               <FormControl>
-                                 <FormLabel>Order Type</FormLabel>
-                                 <Select
-                                   name="entry_date"
-                                   value={formData.order_type}
-                                   onChange={handleChange}
-                                 >
-                                   <option value="Limit">Limit</option>
-                                   <option value="Market">Market</option>
-                                 </Select>
-                               </FormControl>
-                             </GridItem>
+                  <GridItem>
+                    <FormControl>
+                      <FormLabel>Exit Price</FormLabel>
+                      <Input
+                        type="number"
+                        name="exit_price"
+                        value={formData.exit_price || ""}
+                        onChange={handleChange}
+                        placeholder="0"
+                      />
+                    </FormControl>
+                  </GridItem>
+                  <GridItem>
+                    <FormControl>
+                      <FormLabel>Commissions</FormLabel>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        name="commissions"
+                        value={formData.commissions}
+                        onChange={handleChange}
+                        placeholder="0.00"
+                      />
+                    </FormControl>
+                  </GridItem>
+                  <GridItem>
+                    <FormControl>
+                      <FormLabel>Order Type</FormLabel>
+                      <Select
+                        name="entry_date"
+                        value={formData.order_type}
+                        onChange={handleChange}
+                      >
+                        <option value="Limit">Limit</option>
+                        <option value="Market">Market</option>
+                      </Select>
+                    </FormControl>
+                  </GridItem>
 
-                             <GridItem>
-                              <FormControl>
-                                <FormLabel>Implied Volatility</FormLabel>
-                                <Input
-                                  type="number"
-                                  name="implied_volatility"
-                                  value={formData.implied_volatility}
-                                  onChange={handleChange}
-                                  placeholder="10%"
-                                  />
-                              </FormControl>
-                             </GridItem>
+                  <GridItem>
+                    <FormControl>
+                      <FormLabel>Implied Volatility</FormLabel>
+                      <Input
+                        type="number"
+                        name="implied_volatility"
+                        value={formData.implied_volatility}
+                        onChange={handleChange}
+                        placeholder="10%"
+                      />
+                    </FormControl>
+                  </GridItem>
 
-                             <GridItem>
-                              <FormControl>
-                                <FormLabel>Entry Date</FormLabel>
-                                <Input
-                                  type="date"
-                                  name="entry_date"
-                                  value={formData.entry_date}
-                                  onChange={handleChange}
-                                  />
-                              </FormControl>
-                             </GridItem>
+                  <GridItem>
+                    <FormControl>
+                      <FormLabel>Entry Date</FormLabel>
+                      <Input
+                        type="date"
+                        name="entry_date"
+                        value={formData.entry_date}
+                        onChange={handleChange}
+                      />
+                    </FormControl>
+                  </GridItem>
 
-                             <GridItem>
-                               <FormControl>
-                                 <FormLabel>Exit Date</FormLabel>
-                                 <Input
-                                   type="date"
-                                   name="exit_date"
-                                   value={formData.exit_date}
-                                   onChange={handleChange}
-                                 />
-                               </FormControl>
-                             </GridItem>
-                           </Grid>
+                  <GridItem>
+                    <FormControl>
+                      <FormLabel>Exit Date</FormLabel>
+                      <Input
+                        type="date"
+                        name="exit_date"
+                        value={formData.exit_date}
+                        onChange={handleChange}
+                      />
+                    </FormControl>
+                  </GridItem>
+                </Grid>
 
                 <HStack spacing={4} mt={6}>
                   <Button

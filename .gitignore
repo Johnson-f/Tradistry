@@ -22,3 +22,18 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Exclude server folder 
+server/
+
+# Exclude supabase folder
+supabase/
+
+# Exclude .history folder
+.history/
+
+# Exclude node_modules folder
+node_modules/
+
+# Exclude .vscode folder
+.vscode/

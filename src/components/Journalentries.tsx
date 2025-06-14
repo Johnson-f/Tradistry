@@ -2,7 +2,12 @@ import React, { useState, useEffect } from "react";
 import { useJournalEntries } from "../hook2/Journalentries";
 import { useColorModeValue } from "@chakra-ui/react";
 import { useToast } from "@chakra-ui/react";
-import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@radix-ui/react-tooltip";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from "@radix-ui/react-tooltip";
 import { supabase } from "../supabaseClient";
 import {
   useReactTable,
@@ -254,13 +259,15 @@ const JournalEntriesComponent: React.FC = () => {
     fetchEntries();
   }, [selectJournalEntry]);
 
-  // Fetch total net profit from supabase 
+  // Fetch total net profit from supabase
   useEffect(() => {
     const fetchTotalNetProfit = async () => {
       setIsLoadingProfit(true);
       try {
         const user_uuid = "your-user-uuid"; // Replace with actual user UUID
-        const { data, error } = await supabase.rpc("total_net_profit", { user_uuid });
+        const { data, error } = await supabase.rpc("total_net_profit", {
+          user_uuid,
+        });
         if (error) {
           console.error("Error fetching total net profit:", error);
         } else {
@@ -431,201 +438,208 @@ const JournalEntriesComponent: React.FC = () => {
   // TODO: Add a loading state
   return (
     <TooltipProvider>
-    <div
-      className="min-h-screen"
-      style={{
-        background: useColorModeValue(
-          "linear-gradient(to-br, white, gray.100)",
-          "linear-gradient(to-br, slate.900, purple.900)",
-        ),
-        color: useColorModeValue("black", "white"),
-      }}
-    >
-      <div className="container mx-auto mt-10">
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-          <Box as="h2" fontSize="2xl" fontWeight="bold">
-            Journal Entries
+      <div
+        className="min-h-screen"
+        style={{
+          background: useColorModeValue(
+            "linear-gradient(to-br, white, gray.100)",
+            "linear-gradient(to-br, slate.900, purple.900)",
+          ),
+          color: useColorModeValue("black", "white"),
+        }}
+      >
+        <div className="container mx-auto mt-10">
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            mb={4}
+          >
+            <Box as="h2" fontSize="2xl" fontWeight="bold">
+              Journal Entries
+            </Box>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button colorScheme="blue">Net Profit</Button>
+              </TooltipTrigger>
+              <TooltipContent side="top" align="center">
+                {isLoadingProfit
+                  ? "Loading..."
+                  : `Total Net Profit: ${totalNetProfit ?? "N/A"}`}
+              </TooltipContent>
+            </Tooltip>
           </Box>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button colorScheme="blue">Net Profit</Button>
-            </TooltipTrigger>
-            <TooltipContent side="top" align="center">
-              {isLoadingProfit ? "Loading..." : `Total Net Profit: ${totalNetProfit ?? "N/A"}`}
-            </TooltipContent>
-          </Tooltip>
-        </Box>
-        {!showOptions ? (
-          <JournalEntriesTable
-            journalEntries={journalEntries}
-            onSelectEntry={handleSelectEntry}
-            onDeleteEntry={(id) => {
-              deleteJournalEntry(id);
-            }}
-            isLoading={isLoading}
-            onViewOptions={handleViewOptions} // Pass the handler
-          />
-        ) : (
-          <JournalOptionsComponent
-            onViewEntries={() => setShowOptions(false)}
-          />
-        )}
-        <Modal isOpen={isOpen} onClose={onClose}>
-          <ModalOverlay />
-          <ModalContent>
-            <ModalHeader>
-              {selectedEntryId ? "Edit Entry" : "Add New Entry"}
-            </ModalHeader>
-            <ModalCloseButton />
-            <ModalBody>
-              <form onSubmit={handleSubmit}>
-                <FormControl mb={4}>
-                  <FormLabel>Symbol</FormLabel>
-                  <Input
-                    name="symbol"
-                    value={formData.symbol}
-                    onChange={handleChange}
-                    placeholder="(e.g., AAPL)"
-                  />
-                </FormControl>
-                <Grid templateColumns="repeat(2, 1fr)" gap={4}>
-                  <GridItem>
-                    <FormControl>
-                      <FormLabel>Trade Type</FormLabel>
-                      <Select
-                        name="trade_type"
-                        value={formData.trade_type}
-                        onChange={handleChange}
-                      >
-                        <option value="Buy">Buy</option>
-                        <option value="Sell">Sell</option>
-                      </Select>
-                    </FormControl>
-                  </GridItem>
-                  <GridItem>
-                    <FormControl>
-                      <FormLabel>Order Type</FormLabel>
-                      <Input
-                        name="order_type"
-                        value={formData.order_type}
-                        onChange={handleChange}
-                        placeholder="Limit"
-                      />
-                    </FormControl>
-                  </GridItem>
-                  <GridItem>
-                    <FormControl>
-                      <FormLabel>Entry Price</FormLabel>
-                      <Input
-                        type="number"
-                        name="entry_price"
-                        value={formData.entry_price}
-                        onChange={handleChange}
-                        placeholder="0.00"
-                      />
-                    </FormControl>
-                  </GridItem>
-                  <GridItem>
-                    <FormControl>
-                      <FormLabel>Exit Price</FormLabel>
-                      <Input
-                        type="number"
-                        name="exit_price"
-                        value={formData.exit_price}
-                        onChange={handleChange}
-                        placeholder="0.00"
-                      />
-                    </FormControl>
-                  </GridItem>
-                  <GridItem>
-                    <FormControl>
-                      <FormLabel>Stop Loss</FormLabel>
-                      <Input
-                        type="number"
-                        name="stop_loss"
-                        value={formData.stop_loss}
-                        onChange={handleChange}
-                        placeholder="0.00"
-                      />
-                    </FormControl>
-                  </GridItem>
-                  <GridItem>
-                    <FormControl>
-                      <FormLabel>Take Profit</FormLabel>
-                      <Input
-                        type="number"
-                        name="take_profit"
-                        value={formData.take_profit}
-                        onChange={handleChange}
-                        placeholder="0.00"
-                      />
-                    </FormControl>
-                  </GridItem>
-                  <GridItem>
-                    <FormControl>
-                      <FormLabel>Number of Shares</FormLabel>
-                      <Input
-                        type="number"
-                        name="number_shares"
-                        value={formData.number_shares}
-                        onChange={handleChange}
-                        placeholder="0"
-                      />
-                    </FormControl>
-                  </GridItem>
-                  <GridItem>
-                    <FormControl>
-                      <FormLabel>Commissions</FormLabel>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        name="commissions"
-                        value={formData.commissions}
-                        onChange={handleChange}
-                        placeholder="0.00"
-                        min="0"
-                      />
-                    </FormControl>
-                  </GridItem>
-                  <GridItem>
-                    <FormControl>
-                      <FormLabel>Entry Date</FormLabel>
-                      <Input
-                        type="date"
-                        name="entry_date"
-                        value={formData.entry_date}
-                        onChange={handleChange}
-                      />
-                    </FormControl>
-                  </GridItem>
-                  <GridItem>
-                    <FormControl>
-                      <FormLabel>Exit Date</FormLabel>
-                      <Input
-                        type="date"
-                        name="exit_date"
-                        value={formData.exit_date}
-                        onChange={handleChange}
-                      />
-                    </FormControl>
-                  </GridItem>
-                </Grid>
-                <Button
-                  type="submit"
-                  mt={4}
-                  colorScheme="blue"
-                  isLoading={isLoading}
-                  loadingText="Saving..."
-                  width="full"
-                >
-                  {selectedEntryId ? "Update Entry" : "Add Entry"}
-                </Button>
-              </form>
-            </ModalBody>
-          </ModalContent>
-        </Modal>
+          {!showOptions ? (
+            <JournalEntriesTable
+              journalEntries={journalEntries}
+              onSelectEntry={handleSelectEntry}
+              onDeleteEntry={(id) => {
+                deleteJournalEntry(id);
+              }}
+              isLoading={isLoading}
+              onViewOptions={handleViewOptions} // Pass the handler
+            />
+          ) : (
+            <JournalOptionsComponent
+              onViewEntries={() => setShowOptions(false)}
+            />
+          )}
+          <Modal isOpen={isOpen} onClose={onClose}>
+            <ModalOverlay />
+            <ModalContent>
+              <ModalHeader>
+                {selectedEntryId ? "Edit Entry" : "Add New Entry"}
+              </ModalHeader>
+              <ModalCloseButton />
+              <ModalBody>
+                <form onSubmit={handleSubmit}>
+                  <FormControl mb={4}>
+                    <FormLabel>Symbol</FormLabel>
+                    <Input
+                      name="symbol"
+                      value={formData.symbol}
+                      onChange={handleChange}
+                      placeholder="(e.g., AAPL)"
+                    />
+                  </FormControl>
+                  <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+                    <GridItem>
+                      <FormControl>
+                        <FormLabel>Trade Type</FormLabel>
+                        <Select
+                          name="trade_type"
+                          value={formData.trade_type}
+                          onChange={handleChange}
+                        >
+                          <option value="Buy">Buy</option>
+                          <option value="Sell">Sell</option>
+                        </Select>
+                      </FormControl>
+                    </GridItem>
+                    <GridItem>
+                      <FormControl>
+                        <FormLabel>Order Type</FormLabel>
+                        <Input
+                          name="order_type"
+                          value={formData.order_type}
+                          onChange={handleChange}
+                          placeholder="Limit"
+                        />
+                      </FormControl>
+                    </GridItem>
+                    <GridItem>
+                      <FormControl>
+                        <FormLabel>Entry Price</FormLabel>
+                        <Input
+                          type="number"
+                          name="entry_price"
+                          value={formData.entry_price}
+                          onChange={handleChange}
+                          placeholder="0.00"
+                        />
+                      </FormControl>
+                    </GridItem>
+                    <GridItem>
+                      <FormControl>
+                        <FormLabel>Exit Price</FormLabel>
+                        <Input
+                          type="number"
+                          name="exit_price"
+                          value={formData.exit_price}
+                          onChange={handleChange}
+                          placeholder="0.00"
+                        />
+                      </FormControl>
+                    </GridItem>
+                    <GridItem>
+                      <FormControl>
+                        <FormLabel>Stop Loss</FormLabel>
+                        <Input
+                          type="number"
+                          name="stop_loss"
+                          value={formData.stop_loss}
+                          onChange={handleChange}
+                          placeholder="0.00"
+                        />
+                      </FormControl>
+                    </GridItem>
+                    <GridItem>
+                      <FormControl>
+                        <FormLabel>Take Profit</FormLabel>
+                        <Input
+                          type="number"
+                          name="take_profit"
+                          value={formData.take_profit}
+                          onChange={handleChange}
+                          placeholder="0.00"
+                        />
+                      </FormControl>
+                    </GridItem>
+                    <GridItem>
+                      <FormControl>
+                        <FormLabel>Number of Shares</FormLabel>
+                        <Input
+                          type="number"
+                          name="number_shares"
+                          value={formData.number_shares}
+                          onChange={handleChange}
+                          placeholder="0"
+                        />
+                      </FormControl>
+                    </GridItem>
+                    <GridItem>
+                      <FormControl>
+                        <FormLabel>Commissions</FormLabel>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          name="commissions"
+                          value={formData.commissions}
+                          onChange={handleChange}
+                          placeholder="0.00"
+                          min="0"
+                        />
+                      </FormControl>
+                    </GridItem>
+                    <GridItem>
+                      <FormControl>
+                        <FormLabel>Entry Date</FormLabel>
+                        <Input
+                          type="date"
+                          name="entry_date"
+                          value={formData.entry_date}
+                          onChange={handleChange}
+                        />
+                      </FormControl>
+                    </GridItem>
+                    <GridItem>
+                      <FormControl>
+                        <FormLabel>Exit Date</FormLabel>
+                        <Input
+                          type="date"
+                          name="exit_date"
+                          value={formData.exit_date}
+                          onChange={handleChange}
+                        />
+                      </FormControl>
+                    </GridItem>
+                  </Grid>
+                  <Button
+                    type="submit"
+                    mt={4}
+                    colorScheme="blue"
+                    isLoading={isLoading}
+                    loadingText="Saving..."
+                    width="full"
+                  >
+                    {selectedEntryId ? "Update Entry" : "Add Entry"}
+                  </Button>
+                </form>
+              </ModalBody>
+            </ModalContent>
+          </Modal>
+        </div>
       </div>
-    </div>
     </TooltipProvider>
   );
 };

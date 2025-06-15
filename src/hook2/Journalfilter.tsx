@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient"; // <-- import your hook
-import { Box, Text, Heading } from "@chakra-ui/react";
+import { Box, Text, Heading, Flex, useColorModeValue } from "@chakra-ui/react";
 
 console.log("JournalFilter component rendered"); 
 
@@ -12,8 +12,15 @@ interface JournalFilterProps {
 }
 const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFilter, setTimeFilter }) => {
     const [commission, setCommission] = useState<number | null>(null); // State to hold commission data 
+    const [totalTrades, setTotalTrades] = useState<number | null>(null); // State to hold total trades data 
 
     // Subscribe to realtime changes on the journal_entries table
+
+    // Color mode value
+    const boxBg = useColorModeValue("white", "gray.700");
+    const commissionColor = useColorModeValue("teal.500", "teal.300");
+    const tradesColor = useColorModeValue("blue.500", "blue.300");
+    const textColor = useColorModeValue("gray.800", "white");
 
 
     // Fetch commission logic
@@ -44,13 +51,43 @@ const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFi
         }
     };
 
+    // Fetch total trades logic 
+    const fetchTotalTrades = async () => {
+        console.log("Fetching total trades for time filter:", timeFilter); // Remove this
+        let data, error;
+        switch (timeFilter) {
+            case "7days":
+                ({ data, error } = await supabase.rpc("trades_7days"));
+                break;
+                case "30days":
+                ({ data, error } = await supabase.rpc("trades_30days"));
+                break;
+                case "90days":
+                    ({ data, error } = await supabase.rpc("trades_90days"));
+                    break;
+                    case "1year":
+                        ({ data, error } = await supabase.rpc("trades_1year"));
+                        break;
+                        default:
+                            ({ data, error } = await supabase.rpc("total_trades"));
+        }
+        if (error) {
+            console.error("Total trades fetch error:", error);
+        } else {
+            console.log("Total trades data fetched:", data);
+            setTotalTrades(data);
+        }
+    }
+
     // Fetch on mount and when timeFilter changes
     useEffect(() => {
         fetchCommission();
+        fetchTotalTrades();
     }, [timeFilter]);
 
     return (
         <>
+            <Flex direction="row" gap={6} mt={4}>
             <Box
                 maxW="sm"
                 borderWidth="1px"
@@ -58,16 +95,36 @@ const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFi
                 overflow="hidden"
                 boxShadow="md"
                 p={6}
-                bg="white"
+                bg={boxBg}
                 mt={4}
+                color={textColor}
                 >
                     <Heading as="h2" size="md" mb={4}>
                         Commission
                     </Heading>
-                    <Text fontSize="2xl" fontWeight="bold" color="teal.500">
+                    <Text fontSize="2xl" fontWeight="bold" color={commissionColor}>
                         {commission !== null ? commission : "Loading..."}
                     </Text>
                 </Box>
+                <Box
+                  maxW="sm"
+                    borderWidth="1px"
+                    borderRadius="lg"
+                    overflow="hidden"
+                    boxShadow="md"
+                    p={6}
+                    bg={boxBg}
+                    mt={4}
+                    color={textColor}
+                    >
+                        <Heading as="h2" size="md" mb={4}>
+                    Total Trades
+                </Heading>
+                <Text fontSize="2xl" fontWeight="bold" color={tradesColor}>
+                    {totalTrades !== null ? totalTrades : "Loading..."}
+                </Text>
+                    </Box>
+                    </Flex>
             {/* ...rest of your page... */}
         </>
     );

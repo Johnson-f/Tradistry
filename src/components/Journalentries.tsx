@@ -143,6 +143,7 @@ const JournalEntriesTable: React.FC<JournalEntriesTableProps> = ({
     getCoreRowModel: getCoreRowModel(), // Fix: Use the provided utility function
   });
 
+  // Render the table with the provided data and columns 
   return (
     <Box
       bg="whiteAlpha.100"
@@ -152,7 +153,7 @@ const JournalEntriesTable: React.FC<JournalEntriesTableProps> = ({
       borderColor="whiteAlpha.300"
       p={6}
       mb={6}
-      mt={60}
+      mt={40} // Adjust margin-top to avoid overlap with header 
       w="100%"
     >
       <Box
@@ -399,11 +400,12 @@ const JournalEntriesComponent: React.FC = () => {
     onOpen();
   };
 
+  // Function to handle viewing options
   const handleViewOptions = () => {
     setShowOptions(true);
   };
 
-  // TODO: Add a loading state
+  // Modal for adding/editing journal entries 
   return (
       <div
         className="min-h-screen"

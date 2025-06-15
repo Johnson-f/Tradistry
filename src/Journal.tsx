@@ -17,7 +17,12 @@ const Journal: React.FC = () => {
         timeFilter={timeFilter}
         setTimeFilter={setTimeFilter}
         />
-        <JournalFilter />
+        <JournalFilter
+          filter={filter}
+          setFilter={setFilter}
+          timeFilter={timeFilter}
+          setTimeFilter={setTimeFilter}
+        />
       <Toaster position="top-right" richColors />
       <JournalEntriesComponent filter={filter} timeFilter={timeFilter} setFilter={setFilter}/>
       </Box>

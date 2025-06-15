@@ -28,19 +28,7 @@ const JournalHeader: React.FC<JournalHeaderProps> = ({ filter, setFilter, timeFi
             Journal Entry
           </Heading>
           <Spacer />
-          <Select 
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            width="200px"
-            color={color}
-            bg={bg}
-            >
-              <option value="">All Time</option>
-              <option value="7days">7 Days</option>
-              <option value="30days">30 Days</option>
-              <option value="90days">90 Days</option>
-              <option value="1year">1 Year</option>
-            </Select>
+          Filter
             <Select
             value={timeFilter}
             onChange={(e) => setTimeFilter(e.target.value)}

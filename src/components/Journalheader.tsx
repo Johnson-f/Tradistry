@@ -1,182 +1,62 @@
-import {
-  Box,
-  Grid,
-  GridItem,
-  Flex,
-  Text,
-  Button,
-  Select,
-  Input,
-  Card,
-  CardHeader,
-  CardBody,
-} from "@chakra-ui/react";
-import React, { useState, useEffect, useCallback } from "react";
-import { useTheme } from "../Settings";
-import { supabase } from "../supabaseClient";
-import { useSupabaseSubscription } from "../hook2/SupabaseSubscription";
+import { Box, Flex, Heading, Spacer, Select, Button, useColorModeValue } from "@chakra-ui/react";
+import React, { useState } from "react";
 
-const JournalHeader = () => {
-  // Use theme context to dynamically set colors
-  const { textColor } = useTheme();
-
-  // Filter states
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [winRate, setWinRate] = useState("");
-  const [netProfit, setNetProfit] = useState("");
-  const [totalTrades, setTotalTrades] = useState("");
-  const [symbol, setSymbol] = useState("BTCUSD");
-  const [userUuid, setUserUuid] = useState<string | null>(null);
-
-  // Get user UUID from session
-  useEffect(() => {
-    const getUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      setUserUuid(user?.id || null);
-    };
-    getUser();
-  }, []);
-  
-  // Subscribe to journal table changes 
-  
-
-  // Fetch metric
-  const fetchMetrics = useCallback(async () => {
-    if (!userUuid) return;
-    let { data: winRateData } = await supabase.rpc(
-      "filter_win_rate",
-      { end_date: endDate, start_date: startDate, symbol, user_uuid: userUuid },
-    );
-    setWinRate(winRateData);
-
-    let { data: netProfitData } = await supabase.rpc(
-      "filter_net_profit",
-      { end_date: endDate, start_date: startDate, symbol, user_uuid: userUuid },
-    );
-    setNetProfit(netProfitData);
-
-    let { data: totalTradesData } = await supabase.rpc(
-      "filter_total_trades",
-      { end_date: endDate, start_date: startDate, user_uuid: userUuid },
-    );
-    setTotalTrades(totalTradesData);
-  }, [userUuid, startDate, endDate, symbol]);
-  
-  // Auto-fetch metrics on mount, filter change, or realtime event 
-  const { events } = useSupabaseSubscription({
-    table: "entry_table",
-    eventTypes: ["INSERT", "UPDATE", "DELETE"],
-  });
-
-  useEffect(() => {
-    if (userUuid) fetchMetrics();
-    // eslint-disable-next-line
-  }, [userUuid, startDate, endDate, symbol, events])
+interface JournalHeaderProps {
+  filter: string;
+  setFilter: (filter: string) => void;
+  timeFilter: string;
+  setTimeFilter: (filter: string) => void;
+}
+const JournalHeader: React.FC<JournalHeaderProps> = ({ filter, setFilter, timeFilter, setTimeFilter }) => {
+  const bg = useColorModeValue("gray.100", "gray.700");
+  const color = useColorModeValue("gray.800", "white");
 
   return (
-    <>
-      <Box
-        bg="black"
-        p={4}
-        shadow="sm"
-        w="full"
-        borderBottom="1px solid #E2E8F0"
-        position="fixed"
-        top="0"
-        zIndex="1000"
+    <Box 
+      as="header"
+      w="100%"
+      px={6}
+      py={4}
+      bg={bg}
+      color={color}
+      boxShadow="md"
+      backdropFilter="blur(8px)"
+      mb={8}
       >
-        <Grid
-          templateColumns="repeat(2, 1fr)"
-          justifyContent="space-between"
-          gap={4}
-        >
-          {/* Left side: Dashboard title */}
-          <GridItem>
-            <Text
-              fontSize="2xl"
-              fontWeight="semibold"
-              color={textColor}
+        <Flex align="center">
+          <Heading as="h1" size="lg" fontWeight="bold">
+            Journal Entry
+          </Heading>
+          <Spacer />
+          <Select 
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            width="200px"
+            color={color}
+            bg={bg}
             >
-              Journal Entries
-            </Text>
-          </GridItem>
-
-          {/* Right side: Filters and buttons */}
-          <GridItem
-            display="flex"
-            alignItems="center"
-            gap={4}
-            justifyContent="flex-end"
-          >
-            <Input
-              type="date"
-              size="sm"
-              bg="white"
-              color={textColor}
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              w="130px"
-            />
-            <Input
-              type="date"
-              size="sm"
-              bg="white"
-              color={textColor}
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              w="130px"
-            />
-            <Select
-              size="sm"
-              bg="white"
-              color={textColor}
-              shadow="md"
-              w="120px"
-              value={symbol}
-              onChange={(e) => setSymbol(e.target.value)}
-            >
-              <option value="BTCUSD">BTCUSD</option>
-              <option value="ETHUSD">ETHUSD</option>
-              <option value="AAPL">AAPL</option>
+              <option value="">All Time</option>
+              <option value="7days">7 Days</option>
+              <option value="30days">30 Days</option>
+              <option value="90days">90 Days</option>
+              <option value="1year">1 Year</option>
             </Select>
-            <Button
-              size="sm"
-              bg="white"
-              color={textColor}
-              onClick={fetchMetrics}
-              isDisabled={!userUuid}
+            <Select
+            value={timeFilter}
+            onChange={(e) => setTimeFilter(e.target.value)}
+            width="200px"
+            color={color}
+            bg={bg}
+            ml={4}
             >
-              Apply
-            </Button>
-          </GridItem>
-        </Grid>
+              <option value="">All Time</option>
+              <option value="7days">7 Days</option>
+              <option value="30days">30 Days</option>
+              <option value="90days">90 Days</option>
+              <option value="1year">1 Year</option>
+            </Select>
+        </Flex>
       </Box>
-
-      {/* Cards for metrics */}
-      <Flex mt="100px" gap={6} justify="center">
-        <Card minW="200px" bg="gray" color={textColor} shadow="md">
-          <CardHeader fontWeight="bold">Win Rate</CardHeader>
-          <CardBody fontSize="2xl">
-            {winRate !== "" && winRate !== null ? `${winRate}%` : '--'}
-          </CardBody>
-        </Card>
-        <Card minW="200px" bg="gray" color={textColor} shadow="md">
-          <CardHeader fontWeight="bold">Net Profit</CardHeader>
-          <CardBody fontSize="2xl">
-            {netProfit !== "" && netProfit !== null ? netProfit : '--'}
-          </CardBody>
-        </Card>
-        <Card minW="200px" bg="gray" color={textColor} shadow="md">
-          <CardHeader fontWeight="bold">Total Trades</CardHeader>
-          <CardBody fontSize="2xl">
-            {totalTrades !== "" && totalTrades !== null ? totalTrades : '--'}
-          </CardBody>
-        </Card>
-      </Flex>
-    </>
   );
 };
 

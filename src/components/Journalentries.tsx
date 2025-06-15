@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useJournalEntries } from "../hook2/Journalentries";
-import { useColorModeValue } from "@chakra-ui/react";
+import { filter, useColorModeValue } from "@chakra-ui/react";
 import { useToast } from "@chakra-ui/react";
 import { Tooltip } from "react-tooltip";
 import { supabase } from "../supabaseClient";
@@ -58,6 +58,11 @@ interface JournalEntry {
   entry_date: string;
   exit_date: string;
   p_entry_id?: string; // Added property to match the payload
+}
+
+// Props for filter
+interface JournalEntriesComponentProps {
+  filter: string;
 }
 
 // Define types for journal entry payload
@@ -237,6 +242,7 @@ const JournalEntriesComponent: React.FC = () => {
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Function to fetch journal entries 
   React.useEffect(() => {
     const fetchEntries = async () => {
       try {
@@ -253,29 +259,6 @@ const JournalEntriesComponent: React.FC = () => {
     };
     fetchEntries();
   }, [selectJournalEntry]);
-
-  // Fetch total net profit from supabase
-  useEffect(() => {
-    const fetchTotalNetProfit = async () => {
-      setIsLoadingProfit(true);
-      try {
-        const user_uuid = "your-user-uuid"; // Replace with actual user UUID
-        const { data, error } = await supabase.rpc("total_net_profit", {
-          user_uuid,
-        });
-        if (error) {
-          console.error("Error fetching total net profit:", error);
-        } else {
-          setTotalNetProfit(data);
-        }
-      } catch (err) {
-        console.error("Error:", err);
-      } finally {
-        setIsLoadingProfit(false);
-      }
-    };
-    fetchTotalNetProfit();
-  }, []);
 
   // Fixed handleChange function with correct field name mapping
   const handleChange = (
@@ -376,6 +359,7 @@ const JournalEntriesComponent: React.FC = () => {
     }
   };
 
+  // Function to handle entry deletion 
   const handleDeleteEntry = async (entryId: string) => {
     try {
       await deleteJournalEntry(entryId);
@@ -387,19 +371,8 @@ const JournalEntriesComponent: React.FC = () => {
       toast.error("Failed to delete entry. Please try again.");
     }
   };
-
-  // Handle entry selection for editing
-  {
-    /*const handleSelectEntry = (id: string | null) => {
-    setSelectedEntryId(id);
-    if (id) {
-      populateFormForEdit(id);
-    } else {
-      resetForm();
-    }
-    onOpen();
-  };*/
-  }
+ 
+  // Function to handle entry selection 
   const handleSelectEntry = (id: string | null) => {
     setSelectedEntryId(id);
     if (id) {
@@ -450,13 +423,7 @@ const JournalEntriesComponent: React.FC = () => {
             mb={4}
           >
             <Box as="h2" fontSize="2xl" fontWeight="bold">
-              Journal Entries
             </Box>
-            <Button colorScheme="blue" isLoading={isLoadingProfit}>
-          {isLoadingProfit
-            ? "Loading..."
-            : `Total Net Profit: ${totalNetProfit ?? "N/A"}`}
-        </Button>
       </Box>
           {!showOptions ? (
             <JournalEntriesTable

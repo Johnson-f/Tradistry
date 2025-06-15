@@ -11,9 +11,10 @@ import {
   CardHeader,
   CardBody,
 } from "@chakra-ui/react";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useTheme } from "../Settings";
 import { supabase } from "../supabaseClient";
+import { useSupabaseSubscription } from "../hook2/SupabaseSubscription";
 
 const JournalHeader = () => {
   // Use theme context to dynamically set colors
@@ -38,37 +39,42 @@ const JournalHeader = () => {
     };
     getUser();
   }, []);
+  
+  // Subscribe to journal table changes 
+  
 
   // Fetch metric
-  const fetchMetrics = async () => {
-    if (!userUuid) {
-      console.error("User UUID is not set");
-      return;
-    }
-    // Win rate
-    let { data: winRateData, error: winRateError } = await supabase.rpc(
+  const fetchMetrics = useCallback(async () => {
+    if (!userUuid) return;
+    let { data: winRateData } = await supabase.rpc(
       "filter_win_rate",
       { end_date: endDate, start_date: startDate, symbol, user_uuid: userUuid },
     );
-    if (winRateError) console.error(winRateError);
-    else setWinRate(winRateData);
+    setWinRate(winRateData);
 
-    // Net Profit
-    let { data: netProfitData, error: netProfitError } = await supabase.rpc(
+    let { data: netProfitData } = await supabase.rpc(
       "filter_net_profit",
       { end_date: endDate, start_date: startDate, symbol, user_uuid: userUuid },
     );
-    if (netProfitError) console.error(netProfitError);
-    else setNetProfit(netProfitData);
+    setNetProfit(netProfitData);
 
-    // Total Trades
-    let { data: totalTradesData, error: totalTradesError } = await supabase.rpc(
+    let { data: totalTradesData } = await supabase.rpc(
       "filter_total_trades",
       { end_date: endDate, start_date: startDate, user_uuid: userUuid },
     );
-    if (totalTradesError) console.error(totalTradesError);
-    else setTotalTrades(totalTradesData);
-  };
+    setTotalTrades(totalTradesData);
+  }, [userUuid, startDate, endDate, symbol]);
+  
+  // Auto-fetch metrics on mount, filter change, or realtime event 
+  const { events } = useSupabaseSubscription({
+    table: "entry_table",
+    eventTypes: ["INSERT", "UPDATE", "DELETE"],
+  });
+
+  useEffect(() => {
+    if (userUuid) fetchMetrics();
+    // eslint-disable-next-line
+  }, [userUuid, startDate, endDate, symbol, events])
 
   return (
     <>

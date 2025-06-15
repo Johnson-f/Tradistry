@@ -15,6 +15,7 @@ const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFi
     const [totalTrades, setTotalTrades] = useState<number | null>(null); // State to hold total trades data 
     const [winRate, setWinRate] = useState<number | null>(null); // State to hold win rate data 
     const [averageGain, setAverageGain] = useState<number | null>(null); // State to hold average gain data 
+    const [averageLoss, setAverageLoss] = useState<number | null>(null); // State to hold average loss data 
 
     // Subscribe to realtime changes on the journal_entries table
 
@@ -133,13 +134,42 @@ const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFi
         } else {
             setAverageGain(data);
         }
+    };
+
+    // Fetch average loss logic
+    const fetchAverageLoss = async () => {
+        let data, error;
+        switch (timeFilter) {
+            case "7days":
+                ({ data, error } = await supabase.rpc("averageloss_7day"));
+                break;
+                case "30days":
+                    ({ data, error } = await supabase.rpc("averageloss_30day"));
+                    break;
+                    case "90days":
+                        ({ data, error } = await supabase.rpc("averageloss_90day"));
+                        break;
+                        case "1year":
+                            ({ data, error } = await supabase.rpc("averageloss_1year"));
+                            break;
+                            default:
+                                ({ data, error } = await supabase.rpc("average_loss"));
     }
+    if (error) {
+        console.error("Average loss fetch error:", error);
+    } else {
+        setAverageLoss(data);
+    }
+    };
+
+
     // Fetch on mount and when timeFilter changes
     useEffect(() => {
         fetchCommission();
         fetchTotalTrades();
         fetchWinRate();
         fetchAverageGain();
+        fetchAverageLoss();
     }, [timeFilter]);
 
     return (
@@ -218,6 +248,25 @@ const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFi
                         {averageGain !== null ? `${averageGain}` : "Loading..."}
                     </Text>
                             </Box>
+                            {/* Average loss box */}
+                            <Box
+                            maxW="sm"
+                            borderWidth="1px"
+                            borderRadius="lg"
+                            overflow="hidden"
+                            boxShadow="md"
+                            p={6}
+                            bg={boxBg}
+                            mt={4}
+                            color={textColor}
+                            >
+                                <Heading as="h2" size="md" mb={4}>
+                                    Average Loss
+                                    </Heading>
+                                    <Text fontSize="2xl" fontWeight="bold" color="red.400">
+                                        {averageLoss !== null ? `${averageLoss}` : "Loading..."}
+                                        </Text>
+                                        </Box>
                     </Flex>
             {/* ...rest of your page... */}
         </>

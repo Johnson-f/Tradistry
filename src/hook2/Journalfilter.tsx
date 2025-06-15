@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient"; // <-- import your hook
 import { Box, Text, Heading, Flex, useColorModeValue } from "@chakra-ui/react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 console.log("JournalFilter component rendered"); 
 
@@ -16,6 +17,7 @@ const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFi
     const [winRate, setWinRate] = useState<number | null>(null); // State to hold win rate data 
     const [averageGain, setAverageGain] = useState<number | null>(null); // State to hold average gain data 
     const [averageLoss, setAverageLoss] = useState<number | null>(null); // State to hold average loss data 
+    const [netProfitData, setNetProfitData] = useState<any[]>([]); // State to hold net profit data 
 
     // Subscribe to realtime changes on the journal_entries table
 
@@ -162,6 +164,32 @@ const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFi
     }
     };
 
+    // Fetch net profit data logic 
+    const fetchNetProfitData = async () => {
+        let data, error;
+        switch (timeFilter) {
+            case "7days":
+                ({ data, error } = await supabase.rpc("netprofit_7day"));
+                break;
+            case "30days":
+                ({ data, error } = await supabase.rpc("netprofit_30day"));
+                break;
+            case "90days":
+                ({ data, error } = await supabase.rpc("netprofit_90day"));
+                break;
+            case "1year":
+                ({ data, error } = await supabase.rpc("netprofit_1year"));
+                break;
+            default:
+                ({ data, error } = await supabase.rpc("net_prof"));
+        }
+        if (error) {
+            console.error("Net profit fetch error:", error);
+        } else {
+            setNetProfitData(data || []);
+        }
+    }
+
 
     // Fetch on mount and when timeFilter changes
     useEffect(() => {
@@ -170,6 +198,7 @@ const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFi
         fetchWinRate();
         fetchAverageGain();
         fetchAverageLoss();
+        fetchNetProfitData();
     }, [timeFilter]);
 
     return (
@@ -268,6 +297,21 @@ const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFi
                                         </Text>
                                         </Box>
                     </Flex>
+                    {/* Net Profit Chart */}
+                    <Box w="100%" mt={8}>
+                        <Heading as="h2" size="md" mb={4}>
+                            Net Profit Over Time
+                            </Heading>
+                            <ResponsiveContainer width="100%" height={300}>
+                                <LineChart data={netProfitData}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="date" />
+                                    <YAxis />
+                                    <Tooltip />
+                                    <Line type="monotone" dataKey="net_profit" stroke="#8884d8" strokeWidth={2} />
+                                    </LineChart>
+                                    </ResponsiveContainer>
+                                    </Box>
             {/* ...rest of your page... */}
         </>
     );

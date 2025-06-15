@@ -1,4 +1,4 @@
-import React, { useState, useEffect, createContext, useContext } from 'react'
+import React, { useState, useEffect, createContext, useContext, ReactNode, JSX } from 'react'
 import { User, Palette, Bell, Globe, Shield, Monitor, X, ChevronDown } from 'lucide-react'
 import { Settings as SettingsIcon } from 'lucide-react'
 import { supabase } from './supabaseClient'
@@ -26,17 +26,65 @@ import {
   useToast,
 } from '@chakra-ui/react'
 
+// Types
+type ThemeType = 'light' | 'dark' | 'system';
+
+interface ThemeContextType {
+  isDark: boolean;
+  theme: ThemeType;
+  colorMode: 'light' | 'dark';
+  toggleColorMode: () => void;
+  handleThemeChange: (newTheme: ThemeType) => void;
+  bgColor: string;
+  textColor: string;
+  cardBg: string;
+  borderColor: string;
+}
+
+interface ThemeProviderProps {
+  children: ReactNode;
+}
+
+interface SettingsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+interface NotificationSettings {
+  activityInWorkspace: boolean;
+  alwaysSendEmail: boolean;
+  pageUpdates: boolean;
+  workspaceDigest: boolean;
+  announcements: boolean;
+}
+
+interface SupabaseUser {
+  id: string;
+  email?: string;
+  user_metadata?: {
+    full_name?: string;
+    [key: string]: any;
+  };
+  [key: string]: any;
+}
+
+interface SettingSection {
+  id: string;
+  icon: React.ComponentType<{ size?: number }>;
+  label: string;
+}
+
 // Create Theme context that works with Chakra UI
-const ThemeContext = createContext();
+const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 // Theme Provider component integrated with Chakra UI
-const ThemeProvider = ({ children }) => {
+const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const { colorMode, toggleColorMode, setColorMode } = useColorMode();
-  const [theme, setTheme] = useState(() => {
-    const savedTheme = localStorage.getItem('theme-preference');
+  const [theme, setTheme] = useState<ThemeType>(() => {
+    const savedTheme = localStorage.getItem('theme-preference') as ThemeType | null;
     return savedTheme || 'system';
   });
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [isLoaded, setIsLoaded] = useState<boolean>(false);
 
   // Dynamic styles for light and dark modes
   const bgColor = useColorModeValue('white', 'gray.900');
@@ -46,7 +94,7 @@ const ThemeProvider = ({ children }) => {
 
   useEffect(() => {
     const initializeTheme = () => {
-      const savedTheme = localStorage.getItem('theme-preference');
+      const savedTheme = localStorage.getItem('theme-preference') as ThemeType | null;
       if (savedTheme) {
         setTheme(savedTheme);
         setColorMode(savedTheme === 'dark' ? 'dark' : savedTheme === 'light' ? 'light' : 'system');
@@ -66,7 +114,7 @@ const ThemeProvider = ({ children }) => {
     localStorage.setItem('theme-preference', theme);
   }, [theme, isLoaded]);
  
-  const handleThemeChange = (newTheme) => {
+  const handleThemeChange = (newTheme: ThemeType): void => {
     setTheme(newTheme);
     if (newTheme === 'dark' && colorMode !== 'dark') {
       toggleColorMode(); // Switch to dark mode
@@ -90,7 +138,7 @@ const ThemeProvider = ({ children }) => {
     );
   }
 
-  const themeStyles = {
+  const themeStyles: ThemeContextType = {
     isDark: colorMode === 'dark',
     theme,
     colorMode, 
@@ -105,7 +153,7 @@ const ThemeProvider = ({ children }) => {
   return <ThemeContext.Provider value={themeStyles}>{children}</ThemeContext.Provider>;
 };
 
-const useTheme = () => {
+const useTheme = (): ThemeContextType => {
   const context = useContext(ThemeContext);
   if (!context) {
     throw new Error('useTheme must be used within a ThemeProvider');
@@ -113,18 +161,19 @@ const useTheme = () => {
   return context;
 };
 
-function SettingsModal({ isOpen, onClose }) {
+const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const { theme, handleThemeChange, isDark, cardBg, borderColor, colorMode, toggleColorMode } = useTheme();
-  const [activeSection, setActiveSection] = useState('Account');
-  const [language, setLanguage] = useState('English');
-  const [notifications, setNotifications] = useState({
+  const [activeSection, setActiveSection] = useState<string>('Account');
+  const [language, setLanguage] = useState<string>('English');
+  const [notifications, setNotifications] = useState<NotificationSettings>({
     activityInWorkspace: true,
     alwaysSendEmail: false,
     pageUpdates: true,
     workspaceDigest: true,
     announcements: false,
   });
-  const settingSections = [
+  
+  const settingSections: SettingSection[] = [
     { id: 'Account', icon: User, label: 'Account' },
     { id: 'Appearance', icon: Palette, label: 'Appearance' },
     { id: 'Notifications', icon: Bell, label: 'Notifications' },
@@ -132,15 +181,16 @@ function SettingsModal({ isOpen, onClose }) {
     { id: 'Security', icon: Shield, label: 'Security' },
     { id: 'Desktop', icon: Monitor, label: 'Desktop app' },
   ];
-  const [startWeekOnMonday, setStartWeekOnMonday] = useState(true);
-  const [autoTimezone, setAutoTimezone] = useState(true);
-  const [timezone, setTimezone] = useState('(GMT+1:00} Lagos');
-  const [userData, setUserData] = useState(null);
+  
+  const [startWeekOnMonday, setStartWeekOnMonday] = useState<boolean>(true);
+  const [autoTimezone, setAutoTimezone] = useState<boolean>(true);
+  const [timezone, setTimezone] = useState<string>('(GMT+1:00} Lagos');
+  const [userData, setUserData] = useState<SupabaseUser | null>(null);
   const toast = useToast();
 
   // Fetch user data from supabase
   useEffect(() => {
-    const fetchUserData = async () => {
+    const fetchUserData = async (): Promise<void> => {
       const { data, error } = await supabase.auth.getUser();
       if (error) {
         console.error('Error fetching user data:', error.message);
@@ -152,12 +202,15 @@ function SettingsModal({ isOpen, onClose }) {
   }, []);
 
   // Update user profile
-  const updateUserProfile = async () => {
-    const input = document.getElementById('fullName');
+  const updateUserProfile = async (): Promise<void> => {
+    const input = document.getElementById('fullName') as HTMLInputElement;
+    if (!input) return;
+    
     const newName = input.value;
     const { error } = await supabase.auth.updateUser({
       data: { full_name: newName },
     });
+    
     if (error) {
       toast({
         title: 'Error',
@@ -168,9 +221,9 @@ function SettingsModal({ isOpen, onClose }) {
       });
     } else {
       setUserData((prev) => ({
-        ...prev,
-        user_metadata: { ...prev.user_metadata, full_name: newName },
-    }));
+        ...prev!,
+        user_metadata: { ...prev?.user_metadata, full_name: newName },
+      }));
       toast({
         title: 'Success',
         description: 'Profile updated successfully!',
@@ -181,8 +234,10 @@ function SettingsModal({ isOpen, onClose }) {
     }
   };
 
-  const resetPassword = async () => {
-    const { error} = await supabase.auth.resetPasswordForEmail(userData?.email);
+  const resetPassword = async (): Promise<void> => {
+    if (!userData?.email) return;
+    
+    const { error } = await supabase.auth.resetPasswordForEmail(userData.email);
     if (error) {
       toast({
         title: 'Error',
@@ -203,7 +258,7 @@ function SettingsModal({ isOpen, onClose }) {
   };
 
   // Render setting context based on active section
-  const renderSettingContent = () => {
+  const renderSettingContent = (): JSX.Element => {
     switch (activeSection) {
       case 'Account':
         return (
@@ -236,55 +291,57 @@ function SettingsModal({ isOpen, onClose }) {
             </Box>
           </VStack>
         );
-        case 'Appearance':
-          return (
-            <VStack spacing={6} align="stretch">
-              <Box>
-                <Text fontSize="xl" mb={2}>Appearance</Text>
-                <Text fontSize="sm" color="gray.500" mb={6}>
-                  Customize how your application looks on your device.
-                </Text>
-              </Box>
-              <FormControl>
-                <HStack justify="space-between" align="start">
-                  <VStack align="start" spacing={1}>
-                    <FormLabel fontSize="base" fontWeight="medium" mb={8}>
-                      Theme
-                    </FormLabel>
-                    <Text fontSize="sm" color="gray.500"></Text>
-                  </VStack>
-                  <Box position="relative">
-                    <Select
-                      value={theme}
-                      onChange={(e) => handleThemeChange(e.target.value)}
-                      w="200px"
-                      >
-                        <option value="system">Use system settings</option>
-                        <option value="light">Light mode</option>
-                        <option value="dark">Dark mode</option>
-                      </Select>
-                  </Box>
-                </HStack>
-              </FormControl>
-              {/*<FormControl>
-                <HStack justify="space-between" align="start">
-                  <VStack align="start" spacing={1}>
-                    <FormLabel fontSize="base" fontWeight="medium" mb={8}>
-                      Toggle Dark Mode
-                    </FormLabel>
-                    <Text fontSize="sm" color="gray.500">Switch between light and dark mode</Text>
-                  </VStack>
-                  <Switch 
-                     isChecked={colorMode === 'dark'}
-                     onChange={toggleColorMode}
-                     colorScheme="blue"
-                     />
-                </HStack>
-              </FormControl>*/}
-            </VStack>
-          )
-        // Add other cases here..
-        default: 
+        
+      case 'Appearance':
+        return (
+          <VStack spacing={6} align="stretch">
+            <Box>
+              <Text fontSize="xl" mb={2}>Appearance</Text>
+              <Text fontSize="sm" color="gray.500" mb={6}>
+                Customize how your application looks on your device.
+              </Text>
+            </Box>
+            <FormControl>
+              <HStack justify="space-between" align="start">
+                <VStack align="start" spacing={1}>
+                  <FormLabel fontSize="base" fontWeight="medium" mb={8}>
+                    Theme
+                  </FormLabel>
+                  <Text fontSize="sm" color="gray.500"></Text>
+                </VStack>
+                <Box position="relative">
+                  <Select
+                    value={theme}
+                    onChange={(e) => handleThemeChange(e.target.value as ThemeType)}
+                    w="200px"
+                    >
+                      <option value="system">Use system settings</option>
+                      <option value="light">Light mode</option>
+                      <option value="dark">Dark mode</option>
+                    </Select>
+                </Box>
+              </HStack>
+            </FormControl>
+            {/*<FormControl>
+              <HStack justify="space-between" align="start">
+                <VStack align="start" spacing={1}>
+                  <FormLabel fontSize="base" fontWeight="medium" mb={8}>
+                    Toggle Dark Mode
+                  </FormLabel>
+                  <Text fontSize="sm" color="gray.500">Switch between light and dark mode</Text>
+                </VStack>
+                <Switch 
+                   isChecked={colorMode === 'dark'}
+                   onChange={toggleColorMode}
+                   colorScheme="blue"
+                   />
+              </HStack>
+            </FormControl>*/}
+          </VStack>
+        );
+        
+      // Add other cases here..
+      default: 
         return (
           <Box textAlign="center" py={8}>
             <Text color="gray.500">Select a setting category from the sidebar</Text>
@@ -328,19 +385,19 @@ function SettingsModal({ isOpen, onClose }) {
       </ModalContent>
     </Modal>
   );
-}
+};
 
-export default function Settings() {
+const Settings: React.FC = () => {
   return (
     <ThemeProvider>
       <SettingsContent />
-      </ThemeProvider>
+    </ThemeProvider>
   );
-}
+};
 
-function SettingsContent() {
+const SettingsContent: React.FC = () => {
   const { bgColor, textColor } = useTheme();
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
   return (
     <Box bg={bgColor} color={textColor} minH="100vh" p={8}>
@@ -355,6 +412,7 @@ function SettingsContent() {
         <SettingsModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </Box>
   );
-}
+};
 
+export default Settings;
 export { useTheme, ThemeProvider };

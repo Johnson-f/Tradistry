@@ -2,12 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useJournalEntries } from "../hook2/Journalentries";
 import { useColorModeValue } from "@chakra-ui/react";
 import { useToast } from "@chakra-ui/react";
-import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-  TooltipProvider,
-} from "@radix-ui/react-tooltip";
+import { Tooltip } from "react-tooltip";
 import { supabase } from "../supabaseClient";
 import {
   useReactTable,
@@ -437,7 +432,6 @@ const JournalEntriesComponent: React.FC = () => {
 
   // TODO: Add a loading state
   return (
-    <TooltipProvider>
       <div
         className="min-h-screen"
         style={{
@@ -458,17 +452,12 @@ const JournalEntriesComponent: React.FC = () => {
             <Box as="h2" fontSize="2xl" fontWeight="bold">
               Journal Entries
             </Box>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button colorScheme="blue">Net Profit</Button>
-              </TooltipTrigger>
-              <TooltipContent side="top" align="center">
-                {isLoadingProfit
-                  ? "Loading..."
-                  : `Total Net Profit: ${totalNetProfit ?? "N/A"}`}
-              </TooltipContent>
-            </Tooltip>
-          </Box>
+            <Button colorScheme="blue" isLoading={isLoadingProfit}>
+          {isLoadingProfit
+            ? "Loading..."
+            : `Total Net Profit: ${totalNetProfit ?? "N/A"}`}
+        </Button>
+      </Box>
           {!showOptions ? (
             <JournalEntriesTable
               journalEntries={journalEntries}
@@ -640,7 +629,6 @@ const JournalEntriesComponent: React.FC = () => {
           </Modal>
         </div>
       </div>
-    </TooltipProvider>
   );
 };
 

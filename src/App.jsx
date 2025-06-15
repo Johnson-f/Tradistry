@@ -69,7 +69,7 @@ const App = () => {
           <>
             <Route path="/" element={<Landingpage />} />
             <Route path="/Login.jsx" element={<Login />} />
-            <Route path="/SignUp.jsx" element={<SignUp />} />
+            <Route path="/SignUp" element={<SignUp />} />
             <Route path="/ForgotPassword" element={<ForgotPassword />} />
             <Route path="*" element={<Navigate to="/" />} />
           </>
@@ -87,7 +87,7 @@ const App = () => {
                    >
                     {/* Remove errorboundary */}
                   <Routes>
-                    <Route path="/Dashboard.jsx" element={<Dashboard />} />
+                    <Route path="/Dashboard" element={<Dashboard />} />
                     <Route path="/Journal.jsx" element={
                       <ErrorBoundary>
                       <Journal />
@@ -96,9 +96,9 @@ const App = () => {
                       />
                     <Route path="/Analytics.jsx" element={<Analytics />} />
                     <Route path="/Calendar.jsx" element={<Calendar />} />
-                    <Route path="/Settings.jsx" element={<Settings />} />
-                    <Route path="/Login" element={<Login />} />
-                    <Route path="*" element = {<Navigate to="/Dashboard.jsx" />} />
+                    <Route path="/Settings" element={<Settings />} />
+                    <Route path="/Login.jsx" element={<Login />} />
+                    <Route path="*" element = {<Navigate to="/Dashboard" />} />
                   </Routes>
                 </main>
               </div>

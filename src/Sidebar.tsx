@@ -37,6 +37,7 @@ import {
   Plus,
   Search,
 } from "lucide-react";
+import SettingsModal, { ThemeProvider } from "./Settings"; // New code 
 
 // Define props for ModernSidebarItem
 interface ModernSidebarItemProps {
@@ -118,6 +119,9 @@ export default function Sidebar({ onWidthChange }: SidebarProps) {
   });
   const navigate = useNavigate();
 
+  // Settings modal state 
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
@@ -160,6 +164,7 @@ export default function Sidebar({ onWidthChange }: SidebarProps) {
   };
 
   return (
+    <ThemeProvider>
     <div
       className={`${
         isModernCollapsed ? "w-16" : "w-64"
@@ -410,7 +415,7 @@ export default function Sidebar({ onWidthChange }: SidebarProps) {
         {isModernCollapsed && (
           <div className="space-y-2 flex flex-col items-center">
             <button
-              onClick={() => navigate("/Settings.jsx")} // Open settings page
+              onClick={() => navigate("/Settings")} // Open settings page
               title="Settings"
               className="p-2 rounded-lg hover:bg-gray-700 cursor-pointer transition-colors"
             >
@@ -426,16 +431,16 @@ export default function Sidebar({ onWidthChange }: SidebarProps) {
           </div>
         )}
 
+        
         {!isModernCollapsed && (
           <div className="space-y-1">
-            {/* Settings button */}
-            <ModernSidebarItem
-              icon={Settings} // Settings icon
-              label="Settings" // Button label
-              to="/Settings.jsx" // No navigation, just opens the modal
-              collapsed={false} // Not collapsed
-              small={false} // Regular size
-            />
+            <button
+              onClick={() => navigate("/Settings")} // Open modal instead of navigating
+              className="flex items-center space-x-3 px-3 py-2 rounded-lg cursor-pointer text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+              >
+                <Settings className="w-4 h-4" />
+                <span className="text-sm">Settings</span>
+              </button>
             <button
               onClick={handleLogout}
               className="flex items-center space-x-3 px-3 py-2 rounded-lg cursor-pointer text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
@@ -447,5 +452,6 @@ export default function Sidebar({ onWidthChange }: SidebarProps) {
         )}
       </div>
     </div>
+    </ThemeProvider>
   );
 }

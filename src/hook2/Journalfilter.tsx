@@ -299,7 +299,7 @@ const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFi
                     </Flex>
                     {/* Net Profit Chart */}
                     <Box w="100%" mt={8}>
-                        <Heading as="h2" size="md" mb={4}>
+                        <Heading as="h2" size="md" mb={1}>
                             Net Profit Over Time
                             </Heading>
                             <ResponsiveContainer width="100%" height={300}>

@@ -80,6 +80,12 @@ interface JournalEntryPayload {
   exitDate: string;
 }
 
+interface JournalEntriesComponentProps {
+  filter: string;
+  timeFilter: string;
+  setFilter: React.Dispatch<React.SetStateAction<string>>;
+}
+
 interface JournalEntriesTableProps {
   journalEntries: JournalEntry[];
   onSelectEntry: (id: string | null) => void;
@@ -211,7 +217,7 @@ const JournalEntriesTable: React.FC<JournalEntriesTableProps> = ({
   );
 };
 
-const JournalEntriesComponent: React.FC = () => {
+  const JournalEntriesComponent: React.FC<JournalEntriesComponentProps> = ({ filter, timeFilter, setFilter }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const [showOptions, setShowOptions] = useState(false); // State for showing options

@@ -26,6 +26,9 @@ const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFi
     const [averageLoss, setAverageLoss] = useState<number | null>(null);
     const [netProfitData, setNetProfitData] = useState<NetProfitData[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
+    const [averageTradeValue, setAverageTradeValue] = useState<number | null>(null); // State to hold average trade value 
+    const [averageHoldWin, setAverageHoldWin] = useState<number | null>(null); // State to hold average holding period for winners 
+    const [averageHoldLoss, setAverageHoldLoss] = useState<number | null>(null); // State to hold average holding period for losers 
 
     // Color mode values
     const boxBg = useColorModeValue("white", "gray.700");
@@ -203,6 +206,84 @@ const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFi
         }
     };
 
+    // Fetch average trade value logic 
+    const fetchAverageTradeValue = async () => {
+        let data, error;
+        switch (timeFilter) {
+            case "7days":
+                ({ data, error } = await supabase.rpc("averagetrade_value7day"));
+                break;
+            case "30days":
+                ({ data, error } = await supabase.rpc("averagetrade_value30day"));
+                break;
+            case "90days":
+                ({ data, error } = await supabase.rpc("averagetrade_value90day"));
+                break;
+            case "1year":
+                ({ data, error } = await supabase.rpc("averagetrade_value1year"));
+                break;
+            default:
+                ({ data, error } = await supabase.rpc("averagetrade_value"));
+        }
+        if (error) {
+            console.error("Average trade value fetch error:", error);
+        } else {
+            setAverageTradeValue(data);
+        }
+    };
+
+    // Fetch average holding period for winners logic
+    const fetchAverageHoldWin = async () => {
+        let data, error;
+        switch (timeFilter) {
+            case "7days":
+                ({ data, error } = await supabase.rpc("avghold_wins7day"));
+                break;
+            case "30days":
+                ({ data, error } = await supabase.rpc("avghold_wins30day"));
+                break;
+            case "90days":
+                ({ data, error } = await supabase.rpc("avghold_wins90day"));
+                break;
+            case "1year":
+                ({ data, error } = await supabase.rpc("avghold_wins1year"));
+                break;
+            default:
+                ({ data, error } = await supabase.rpc("avghold_wins"));
+        }
+        if (error) {
+            console.error("Average hold win fetch error:", error);
+        } else {
+            setAverageHoldWin(data);
+        }
+    };
+
+    // Fetch average holding period for losers logic 
+    const fetchAverageHoldLoss = async () => {
+        let data, error;
+        switch (timeFilter) {
+            case "7days":
+                ({ data, error } = await supabase.rpc("avghold_loss7day"));
+                break;
+            case "30days":
+                ({ data, error } = await supabase.rpc("avghold_loss30day"));
+                break;
+            case "90days":
+                ({ data, error } = await supabase.rpc("avghold_loss90day"));
+                break;
+            case "1year":
+                ({ data, error } = await supabase.rpc("avghold_loss1year"));
+                break;
+            default:
+                ({ data, error } = await supabase.rpc("avghold_loss"));
+        }
+        if (error) {
+            console.error("Average hold loss fetch error:", error);
+        } else {
+            setAverageHoldLoss(data);
+        }
+    };
+
     // Fetch all data
     const fetchAllData = async () => {
         setLoading(true);
@@ -213,6 +294,9 @@ const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFi
                 fetchWinRate(),
                 fetchAverageGain(),
                 fetchAverageLoss(),
+                fetchAverageTradeValue(),
+                fetchAverageHoldWin(),
+                fetchAverageHoldLoss(),
                 fetchNetProfitData()
             ]);
         } catch (error) {
@@ -255,7 +339,7 @@ const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFi
                     color={textColor}
                 >
                     <Heading as="h2" size="md" mb={4}>
-                        Commission
+                       Total Commission
                     </Heading>
                     <Text fontSize="2xl" fontWeight="bold" color={commissionColor}>
                         {commission !== null ? `$${commission.toFixed(2)}` : "Loading..."}
@@ -315,7 +399,7 @@ const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFi
                         Average Gain
                     </Heading>
                     <Text fontSize="2xl" fontWeight="bold" color={avgGainColor}>
-                        {averageGain !== null ? `$${averageGain.toFixed(2)}` : "Loading..."}
+                        {averageGain !== null ? `${averageGain.toFixed(2)}%` : "Loading..."}
                     </Text>
                 </Box>
 
@@ -334,15 +418,36 @@ const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFi
                         Average Loss
                     </Heading>
                     <Text fontSize="2xl" fontWeight="bold" color="red.400">
-                        {averageLoss !== null ? `$${averageLoss.toFixed(2)}` : "Loading..."}
+                        {averageLoss !== null ? `${averageLoss.toFixed(2)}%` : "Loading..."}
                     </Text>
                 </Box>
+
+                {/* Average Trade Value */}
+                <Box
+                maxW="sm"
+                borderWidth="1px"
+                borderRadius="lg"
+                overflow="hidden"
+                boxShadow="md"
+                p={6}
+                bg={boxBg}
+                mt={4}
+                color={textColor}
+                >
+                    <Heading as="h2" size="md" mb={4}>
+                        Avg Trade Value
+                        </Heading>
+                        <Text fontSize="2xl" fontWeight="bold" color="purple.400">
+                            {averageTradeValue !== null ? `$${averageTradeValue.toFixed(2)}` : "Loading..."}
+                            </Text>
+                            </Box>
             </Flex>
 
             {/* Net Profit Chart */}
-            <Box w="100%" mt={8} p={6} bg={boxBg} borderRadius="lg" boxShadow="md">
+            <Flex direction="row" gap={6} mt={8} align="flex-start">
+            <Box w="60%" mt={8} p={6} bg={boxBg} borderRadius="lg" boxShadow="md">
                 <Heading as="h2" size="md" mb={4} color={textColor}>
-                    Net Profit Over Time
+                    Equity Curve - Net Profit 
                 </Heading>
                 
                 {loading ? (
@@ -388,6 +493,47 @@ const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFi
                     </ResponsiveContainer>
                 )}
             </Box>
+
+            {/* Average holding period for winners */}
+            <Box
+            maxW="sm"
+            borderWidth="1px"
+            borderRadius="lg"
+            overflow="hidden"
+            boxShadow="md"
+            p={6}
+            bg={boxBg}
+            mt={4}
+            color={textColor}
+            >
+                <Heading as="h2" size="md" mb={4}>
+                    Avg Hold on Winnners
+                    </Heading>
+                    <Text fontSize="2xl" fontWeight="bold" color="cyan.500">
+                        {averageHoldWin !== null ? `${averageHoldWin.toFixed(2)} days` : "Loading..."}
+                        </Text>
+                    </Box>
+
+                    {/* Average holding period for losers */}
+                    <Box
+                    maxW="sm"
+                    borderWidth="1px"
+                    borderRadius="lg"
+                    overflow="hidden"
+                    boxShadow="md"
+                    p={6}
+                    bg={boxBg}
+                    mt={4}
+                    color={textColor}
+                    >
+                        <Heading as="h2" size="md" mb={4}>
+                            Avg Hold on Losers
+                            </Heading>
+                            <Text fontSize="2xl" fontWeight="bold" color="pink.400">
+                                {averageHoldLoss !== null ? `${averageHoldLoss.toFixed(2)} days` : "Loading..."}
+                                </Text>
+                                </Box>
+                </Flex>
         </>
     );
 };

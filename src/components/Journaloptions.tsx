@@ -340,7 +340,7 @@ const JournalOptionsComponent: React.FC<{ onViewEntries: () => void }> = ({
           borderColor="whiteAlpha.300"
           p={6}
           mb={6}
-          mt={60}
+          mt={5}
           w="100%"
         >
           <Box

@@ -153,7 +153,7 @@ const JournalEntriesTable: React.FC<JournalEntriesTableProps> = ({
       borderColor="whiteAlpha.300"
       p={6}
       mb={6}
-      mt={10} // Adjust margin-top to avoid overlap with header 
+      mt={5} // Adjust margin-top to avoid overlap with header 
       w="100%"
     >
       <Box

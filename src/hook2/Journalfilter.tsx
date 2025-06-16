@@ -459,38 +459,46 @@ const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFi
                         <Text color={textColor}>No data available for the selected time period</Text>
                     </Box>
                 ) : (
+                    // Render the chart
+
+                    // Version to of the chart
                     <ResponsiveContainer width="100%" height={300}>
-                        <LineChart data={netProfitData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                            <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                            <XAxis 
-                                dataKey="date" 
-                                tick={{ fontSize: 12, fill: textColor }}
-                                tickFormatter={(value) => {
-                                    // Format date for better readability
-                                    try {
-                                        return new Date(value).toLocaleDateString();
-                                    } catch {
-                                        return value;
-                                    }
-                                }}
-                            />
-                            <YAxis 
-                                tick={{ fontSize: 12, fill: textColor }}
-                                tickFormatter={(value) => `$${value.toFixed(0)}`}
-                            />
-                            <Tooltip content={<CustomTooltip />} />
-                            <Legend />
-                            <Line 
-                                type="monotone" 
-                                dataKey="net_profit" 
-                                stroke="#8884d8" 
-                                strokeWidth={2}
-                                dot={{ fill: '#8884d8', strokeWidth: 2, r: 4 }}
-                                activeDot={{ r: 6, stroke: '#8884d8', strokeWidth: 2 }}
-                                name="Net Profit"
-                            />
-                        </LineChart>
-                    </ResponsiveContainer>
+  <LineChart data={netProfitData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+    <defs>
+      <linearGradient id="netProfitGradient" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#805AD5" stopOpacity={0.9} />
+        <stop offset="100%" stopColor="#63B3ED" stopOpacity={0.7} />
+      </linearGradient>
+    </defs>
+    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+    <XAxis 
+      dataKey="date" 
+      tick={{ fontSize: 12, fill: textColor }}
+      tickFormatter={(value) => {
+        try {
+          return new Date(value).toLocaleDateString();
+        } catch {
+          return value;
+        }
+      }}
+    />
+    <YAxis 
+      tick={{ fontSize: 12, fill: textColor }}
+      tickFormatter={(value) => `$${value.toFixed(0)}`}
+    />
+    <Tooltip content={<CustomTooltip />} />
+    <Legend />
+    <Line 
+      type="monotone" 
+      dataKey="net_profit" 
+      stroke="url(#netProfitGradient)" 
+      strokeWidth={3}
+      dot={{ fill: '#805AD5', strokeWidth: 2, r: 4 }}
+      activeDot={{ r: 6, stroke: '#805AD5', strokeWidth: 2 }}
+      name="Net Profit"
+    />
+  </LineChart>
+</ResponsiveContainer>
                 )}
             </Box>
 

@@ -37,7 +37,7 @@ const JournalHeader: React.FC<JournalHeaderProps> = ({ filter, setFilter, timeFi
     transition="color 0.2s"
     _hover={{ color: "teal.400" }}
   >
-    Journal Entry
+    Journal
   </Heading>
           <Spacer />
           <Box

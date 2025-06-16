@@ -464,9 +464,7 @@ const JournalEntriesTable: React.FC<JournalEntriesTableProps> = ({
             <JournalEntriesTable
               journalEntries={journalEntries}
               onSelectEntry={handleSelectEntry}
-              onDeleteEntry={(id) => {
-                deleteJournalEntry(id);
-              }}
+              onDeleteEntry={handleDeleteEntry}
               isLoading={isLoading}
               onViewOptions={handleViewOptions} // Pass the handler
             />

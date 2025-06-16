@@ -418,7 +418,7 @@ const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFi
                         Average Loss
                     </Heading>
                     <Text fontSize="2xl" fontWeight="bold" color="red.400">
-                        {averageLoss !== null ? `${averageLoss.toFixed(2)}%` : "Loading..."}
+                        {averageLoss !== null ? `$${averageLoss.toFixed(2)}` : "Loading..."}
                     </Text>
                 </Box>
 

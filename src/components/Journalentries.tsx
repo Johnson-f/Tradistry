@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useJournalEntries } from "../hook2/Journalentries";
-import { filter, useColorModeValue } from "@chakra-ui/react";
+import { filter, useColorMode, useColorModeValue } from "@chakra-ui/react";
 import { useToast } from "@chakra-ui/react";
 import { Tooltip } from "react-tooltip";
 import { supabase } from "../supabaseClient";
+import { motion } from "framer-motion";
 import {
   useReactTable,
   ColumnDef,
@@ -94,6 +95,9 @@ interface JournalEntriesTableProps {
   onViewOptions: () => void; // Props for viewing options
 }
 
+// Animate Table rows 
+const MotionTr = motion(Tr);
+
 const JournalEntriesTable: React.FC<JournalEntriesTableProps> = ({
   journalEntries,
   onSelectEntry,
@@ -102,6 +106,7 @@ const JournalEntriesTable: React.FC<JournalEntriesTableProps> = ({
   onViewOptions, // Props for viewing options
 }) => {
   const textColor = useColorModeValue("black", "white");
+  const rowHoverBg = useColorModeValue("#f0f0f0", "whiteAlpha.200");
 
   const columns: ColumnDef<JournalEntry>[] = [
     { accessorKey: "symbol", header: "Symbol" },
@@ -152,6 +157,9 @@ const JournalEntriesTable: React.FC<JournalEntriesTableProps> = ({
   // Render the table with the provided data and columns 
   return (
     <Box
+      as={motion.div}
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
       bg="whiteAlpha.100"
       backdropFilter="blur(5px)"
       borderRadius="xl"
@@ -173,10 +181,22 @@ const JournalEntriesTable: React.FC<JournalEntriesTableProps> = ({
           {isLoading && <Spinner size="sm" ml={2} color="whiteAlpha.600" />}
         </Box>
         <HStack spacing={4}>
-          <Button colorScheme="blue" onClick={() => onSelectEntry(null)}>
+          <Button 
+               colorScheme="blue" 
+               onClick={() => onSelectEntry(null)}
+               as={motion.button}
+               whileHover={{ scale: 1.07 }}
+               whileTap={{ scale: 0.97 }}
+               >
             New Entry
           </Button>
-          <Button colorScheme="green" onClick={onViewOptions}>
+          <Button 
+               colorScheme="green" 
+               onClick={onViewOptions}
+               as={motion.button}
+               whileHover={{ scale: 1.07 }}
+               whileTap={{ scale: 0.97 }}
+               >
             Options
           </Button>
         </HStack>
@@ -201,14 +221,21 @@ const JournalEntriesTable: React.FC<JournalEntriesTableProps> = ({
             ))}
           </Thead>
           <Tbody>
-            {table.getRowModel().rows.map((row) => (
-              <Tr key={row.id}>
+                  {table.getRowModel().rows.map((row, idx) => (
+              <MotionTr
+                key={row.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.04 }}
+                whileHover={{ scale: 1.01, backgroundColor: rowHoverBg }}
+                style={{ cursor: "pointer" }}
+              >
                 {row.getVisibleCells().map((cell) => (
                   <Td key={cell.id} color={textColor}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </Td>
                 ))}
-              </Tr>
+              </MotionTr>
             ))}
           </Tbody>
         </ChakraTable>
@@ -450,7 +477,11 @@ const JournalEntriesTable: React.FC<JournalEntriesTableProps> = ({
           )}
           <Modal isOpen={isOpen} onClose={onClose}>
             <ModalOverlay />
-            <ModalContent>
+            <ModalContent
+              as={motion.div}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+            >
               <ModalHeader>
                 {selectedEntryId ? "Edit Entry" : "Add New Entry"}
               </ModalHeader>
@@ -589,6 +620,9 @@ const JournalEntriesTable: React.FC<JournalEntriesTableProps> = ({
                     </GridItem>
                   </Grid>
                   <Button
+                    as={motion.button}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.97 }}
                     type="submit"
                     mt={4}
                     colorScheme="blue"

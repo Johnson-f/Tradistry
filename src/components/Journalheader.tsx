@@ -24,11 +24,35 @@ const JournalHeader: React.FC<JournalHeaderProps> = ({ filter, setFilter, timeFi
       mb={8}
       >
         <Flex align="center">
-          <Heading as="h1" size="lg" fontWeight="bold">
+          {/*<Heading as="h1" size="lg" fontWeight="bold">
             Journal Entry
-          </Heading>
+          </Heading>*/}
+          <Heading
+    as="h1"
+    size="xl"
+    fontWeight="extrabold"
+    letterSpacing="wide"
+    color="teal.500"
+    mr={8}
+    transition="color 0.2s"
+    _hover={{ color: "teal.400" }}
+  >
+    Journal Entry
+  </Heading>
           <Spacer />
-          Filter
+          <Box
+          fontWeight="bold"
+          fontSize="lg"
+          color="purple.500"
+          px={3}
+          py={1}
+          borderRadius="md"
+          bg={useColorModeValue("purple.50", "purple.900")}
+          mr={2}
+          boxShadow="sm"
+          >
+            FILTER
+            </Box>
             <Select
             value={timeFilter}
             onChange={(e) => setTimeFilter(e.target.value)}

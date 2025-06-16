@@ -4,6 +4,7 @@ import { useColorModeValue } from "@chakra-ui/react";
 import { useDisclosure } from "@chakra-ui/react";
 import { toast } from "sonner";
 import { Spinner } from "@chakra-ui/react";
+import { motion } from "framer-motion";
 import {
   Box,
   FormControl,
@@ -54,6 +55,9 @@ interface OptionPayload {
   exit_date?: string; // Optional for compatibility
 }
 
+// Animate Table rows
+const MotionTr = motion(Tr);
+
 const JournalOptionsComponent: React.FC<{ onViewEntries: () => void }> = ({
   onViewEntries,
 }) => {
@@ -77,6 +81,7 @@ const JournalOptionsComponent: React.FC<{ onViewEntries: () => void }> = ({
     entry_date: "",
   });
   const [isLoading, setIsLoading] = useState(false);
+  const rowHoverBg = useColorModeValue("#f0f0f0", "whiteAlpha.200");
 
   useEffect(() => {
     const fetchOptions = async () => {
@@ -355,6 +360,9 @@ const JournalOptionsComponent: React.FC<{ onViewEntries: () => void }> = ({
             </Box>
             <HStack spacing={4}>
               <Button
+                as={motion.button}
+                whileHover={{ scale: 1.07 }}
+                whileTap={{ scale: 0.97 }}
                 colorScheme="blue"
                 onClick={() => handleSelectOption(null)}
                 isDisabled={isLoading}
@@ -362,6 +370,9 @@ const JournalOptionsComponent: React.FC<{ onViewEntries: () => void }> = ({
                 New Entry
               </Button>
               <Button
+                as={motion.button}
+                whileHover={{ scale: 1.07 }}
+                whileTap={{ scale: 0.97 }}
                 colorScheme="green"
                 onClick={onViewEntries}
                 isDisabled={isLoading}
@@ -390,8 +401,19 @@ const JournalOptionsComponent: React.FC<{ onViewEntries: () => void }> = ({
                 ))}
               </Thead>
               <Tbody>
-                {table.getRowModel().rows.map((row) => (
-                  <Tr key={row.id}>
+                {table.getRowModel().rows.map((row, idx) => (
+                  <MotionTr
+                  key={row.id}
+                  initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.04 }}
+                    whileHover={{
+                      scale: 1.01,
+                      backgroundColor: rowHoverBg,
+                      transition: { duration: 0.2 },
+                    }}
+                    style={{ cursor: "pointer" }}
+                  >
                     {row.getVisibleCells().map((cell) => (
                       <Td key={cell.id}>
                         {flexRender(
@@ -400,7 +422,7 @@ const JournalOptionsComponent: React.FC<{ onViewEntries: () => void }> = ({
                         )}
                       </Td>
                     ))}
-                  </Tr>
+                  </MotionTr>
                 ))}
               </Tbody>
             </ChakraTable>

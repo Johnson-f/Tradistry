@@ -435,9 +435,6 @@ const JournalEntriesTable: React.FC<JournalEntriesTableProps> = ({
   };
 
   // Function to handle viewing options
-  {/*const handleViewOptions = () => {
-    setShowOptions(true);
-  };*/}
   const handleViewOptions = () => {
     setViewMode("options");
   }
@@ -643,5 +640,4 @@ const JournalEntriesTable: React.FC<JournalEntriesTableProps> = ({
       </div>
   );
 };
-
 export default JournalEntriesComponent;

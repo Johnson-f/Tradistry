@@ -362,7 +362,7 @@ const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFi
                     color={textColor}
                 >
                     <Heading as="h2" size="md" mb={4}>
-                       Total Commission
+                       Trade Fees
                     </Heading>
                     <Text fontSize="2xl" fontWeight="bold" color={commissionColor}>
                         {commission !== null ? `$${commission.toFixed(2)}` : "Loading..."}

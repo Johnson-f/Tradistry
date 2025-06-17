@@ -474,8 +474,9 @@ const JournalEntriesTable: React.FC<JournalEntriesTableProps> = ({
             />
           ) : (
             <JournalOptionsComponent
-              onViewEntries={() => setShowOptions(false)}
-            />
+              onViewEntries={() => setShowOptions(false)} timeFilter={""} setTimeFilter={function (filter: string): void {
+                throw new Error("Function not implemented.");
+              } }            />
           )}
           <Modal isOpen={isOpen} onClose={onClose}>
             <ModalOverlay />

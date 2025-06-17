@@ -56,12 +56,22 @@ interface OptionPayload {
   exit_date?: string; // Optional for compatibility
 }
 
+interface JournalOptionsComponentProps {
+  onViewEntries: () => void; // Callback for viewing entries
+  timeFilter: string;
+  setTimeFilter: (filter: string) => void; // Callback to set time filter 
+}
 // Animate Table rows
 const MotionTr = motion(Tr);
 
-const JournalOptionsComponent: React.FC<{ onViewEntries: () => void }> = ({
+{/*const JournalOptionsComponent: React.FC<{ onViewEntries: () => void }> = ({
   onViewEntries,
-}) => {
+}) => {*/}
+ const JournalOptionsComponent: React.FC<JournalOptionsComponentProps> = ({
+  onViewEntries,
+  timeFilter,
+  setTimeFilter,
+ }) => {
   const { insertOption, updateOption, deleteOption, selectOptions, options } =
     useJournalOptions();
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -340,7 +350,7 @@ const JournalOptionsComponent: React.FC<{ onViewEntries: () => void }> = ({
       }}
     >
       <div className="container mx-auto mt-10">
-      <Optionsfilter />;
+      <Optionsfilter timeFilter={timeFilter} />
         <Box
           bg="whiteAlpha.100"
           backdropFilter="blur(5px)"

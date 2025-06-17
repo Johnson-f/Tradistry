@@ -39,7 +39,9 @@ const Journal: React.FC = () => {
           </>
         ) : (
           <>
-            <JournalOptionsComponent onViewEntries={() => setViewMode("stocks")} />
+            <JournalOptionsComponent onViewEntries={() => setViewMode("stocks")} timeFilter={''} setTimeFilter={function (filter: string): void {
+                throw new Error('Function not implemented.');
+              } } />
             <Toaster position="top-right" richColors />
           </>
         )}

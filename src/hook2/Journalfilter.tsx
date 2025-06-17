@@ -10,6 +10,7 @@ interface JournalFilterProps {
     setFilter: (filter: string) => void;
     timeFilter: string;
     setTimeFilter: (filter: string) => void;
+    viewMode: "stocks" | "options"; 
 }
 
 // Define the structure of net profit data
@@ -18,7 +19,7 @@ interface NetProfitData {
     net_profit: number;
 }
 
-const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFilter, setTimeFilter }) => {
+const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFilter, setTimeFilter, viewMode }) => {
     const [commission, setCommission] = useState<number | null>(null);
     const [totalTrades, setTotalTrades] = useState<number | null>(null);
     const [winRate, setWinRate] = useState<number | null>(null);
@@ -29,6 +30,9 @@ const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFi
     const [averageTradeValue, setAverageTradeValue] = useState<number | null>(null); // State to hold average trade value 
     const [averageHoldWin, setAverageHoldWin] = useState<number | null>(null); // State to hold average holding period for winners 
     const [averageHoldLoss, setAverageHoldLoss] = useState<number | null>(null); // State to hold average holding period for losers 
+
+    // -- OPTIONS-SPECIFIC STATE --
+
 
     // Color mode values
     const boxBg = useColorModeValue("white", "gray.700");
@@ -41,8 +45,26 @@ const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFi
 
     // Fetch commission logic
     const fetchCommission = async () => {
-        console.log("Fetching commission for time filter:", timeFilter);
         let data, error;
+        if (viewMode === "options") {
+            switch (timeFilter) {
+                case "7days":
+                    ({ data, error } = await supabase.rpc("commissions_options7days"));
+                    break;
+                case "30days":
+                    ({ data, error } = await supabase.rpc("commissions_option30day"));
+                    break;
+                case "90days":
+                    ({ data, error } = await supabase.rpc("commisssions_option90day"));
+                    break;
+                case "1year":
+                    // If you have a 1 year RPC for options, use it. Otherwise, fallback to all time.
+                    ({ data, error } = await supabase.rpc("commissions_options1year"));
+                    break;
+                default:
+                    ({ data, error } = await supabase.rpc("commissions_options"));
+            }
+        } else {
         switch (timeFilter) {
             case "7days":
                 ({ data, error } = await supabase.rpc("commissions_7days"));
@@ -59,6 +81,7 @@ const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFi
             default:
                 ({ data, error } = await supabase.rpc("total_commissions"));
         }
+    }
         if (error) {
             console.error("Commission fetch error:", error);
         } else {

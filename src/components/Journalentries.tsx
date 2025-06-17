@@ -85,6 +85,7 @@ interface JournalEntriesComponentProps {
   filter: string;
   timeFilter: string;
   setFilter: React.Dispatch<React.SetStateAction<string>>;
+  setViewMode: (mode: "stocks" | "options") => void; // Props for setting view mode 
 }
 
 interface JournalEntriesTableProps {
@@ -244,7 +245,7 @@ const JournalEntriesTable: React.FC<JournalEntriesTableProps> = ({
   );
 };
 
-  const JournalEntriesComponent: React.FC<JournalEntriesComponentProps> = ({ filter, timeFilter, setFilter }) => {
+  const JournalEntriesComponent: React.FC<JournalEntriesComponentProps> = ({ filter, timeFilter, setFilter, setViewMode }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const [showOptions, setShowOptions] = useState(false); // State for showing options
@@ -434,9 +435,12 @@ const JournalEntriesTable: React.FC<JournalEntriesTableProps> = ({
   };
 
   // Function to handle viewing options
-  const handleViewOptions = () => {
+  {/*const handleViewOptions = () => {
     setShowOptions(true);
-  };
+  };*/}
+  const handleViewOptions = () => {
+    setViewMode("options");
+  }
 
   // Modal for adding/editing journal entries 
   return (

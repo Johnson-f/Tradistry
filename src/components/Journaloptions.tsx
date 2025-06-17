@@ -5,6 +5,7 @@ import { useDisclosure } from "@chakra-ui/react";
 import { toast } from "sonner";
 import { Spinner } from "@chakra-ui/react";
 import { motion } from "framer-motion";
+import Optionsfilter from "../hook2/Optionsfilter";
 import {
   Box,
   FormControl,
@@ -280,6 +281,7 @@ const JournalOptionsComponent: React.FC<{ onViewEntries: () => void }> = ({
     onClose();
   };
 
+  
   const columns: ColumnDef<OptionPayload, any>[] = [
     { accessorKey: "symbol", header: "Symbol" },
     { accessorKey: "strategy", header: "Strategy" },
@@ -324,6 +326,7 @@ const JournalOptionsComponent: React.FC<{ onViewEntries: () => void }> = ({
     getCoreRowModel: getCoreRowModel(),
   });
 
+
   // UI rendering
   return (
     <div
@@ -337,6 +340,7 @@ const JournalOptionsComponent: React.FC<{ onViewEntries: () => void }> = ({
       }}
     >
       <div className="container mx-auto mt-10">
+      <Optionsfilter />;
         <Box
           bg="whiteAlpha.100"
           backdropFilter="blur(5px)"

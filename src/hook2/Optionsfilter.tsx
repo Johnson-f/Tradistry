@@ -462,7 +462,7 @@ const Optionsfilter: React.FC<OptionsfilterProps> = ({ timeFilter }) => {
       </Box>
 
       {/* ROI Box */}
-      <Flex direction="column" w="40%" mt={8} mr={4}>
+      <Flex direction="column" w="40%" mt={0} mr={4}>
       <Box
       maxW="sm"
       borderWidth="1px"

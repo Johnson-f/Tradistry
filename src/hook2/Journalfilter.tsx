@@ -349,7 +349,7 @@ const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFi
 
     return (
         <>
-            <Flex direction="row" gap={6} mt={4} wrap="wrap">
+            <Flex direction="row" ml={4} gap={6} mt={4} wrap="wrap">
                 <Box
                     maxW="sm"
                     borderWidth="1px"
@@ -467,7 +467,7 @@ const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFi
             </Flex>
 
             {/* Net Profit Chart */}
-            <Flex direction="row" gap={6} mt={8} align="flex-start">
+            <Flex direction="row" ml={4} gap={6} mt={8} align="flex-start">
             <Box w="60%" mt={8} p={6} bg={boxBg} borderRadius="lg" boxShadow="md">
                 <Heading as="h2" size="md" mb={4} color={textColor}>
                     Equity Curve - Net Profit 

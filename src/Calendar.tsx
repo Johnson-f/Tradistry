@@ -1,9 +1,14 @@
-import React from 'react'
+import React from 'react';
+import CalendarHeader from './components/Calendarheader';
+import Calendarbody from './components/Calendarbody';
 
 const Calendar = () => {
   return (
-    <div>Hey how are you doing, i hope you are doing great and happy birthday and merry happy returns, you shall live long</div>
+    <>
+      <CalendarHeader />
+      <Calendarbody />
+    </>
   )
 }
 
-export default Calendar
+export default Calendar;

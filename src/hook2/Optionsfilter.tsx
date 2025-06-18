@@ -17,6 +17,8 @@ const Optionsfilter: React.FC<OptionsfilterProps> = ({ timeFilter }) => {
   const [totalContracts, setTotalContracts] = useState<number | null>(null);
   const [netProfitData, setNetProfitData] = useState<{ data: string; net_profit: number }[]>([]);
   const [roi, setRoi] = useState<number | null>(null);
+  const [avgHoldLoss, setAvgHoldLoss] = useState<number | null>(null);
+  const [avgHoldWin, setAvgHoldWin] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
 
   const boxBg = useColorModeValue("white", "gray.700");
@@ -182,7 +184,7 @@ const Optionsfilter: React.FC<OptionsfilterProps> = ({ timeFilter }) => {
         );
       }
 
-      // Function to fetch ROIT
+      // Function to fetch ROI
       let roiData, roiError;
       switch (timeFilter) {
         case "7days":
@@ -202,6 +204,50 @@ const Optionsfilter: React.FC<OptionsfilterProps> = ({ timeFilter }) => {
       }
       setRoi(
         roiError ? null : (Array.isArray(roiData) ? roiData[0]?.roi ?? roiData[0]?.return_on_investment : roiData)
+      );
+
+      // Function for fetch average hold period on winners 
+      let avgHoldWinData, avgHoldWinError;
+      switch (timeFilter) {
+        case "7days":
+          ({ data: avgHoldWinData, error: avgHoldWinError } = await supabase.rpc("avghold_optionwins7day"));
+          break;
+        case "30days":
+          ({ data: avgHoldWinData, error: avgHoldWinError } = await supabase.rpc("avghold_optionwins30day"));
+          break;
+        case "90days":
+          ({ data: avgHoldWinData, error: avgHoldWinError } = await supabase.rpc("avghold_optionwins90day"));
+          break;
+        case "1year":
+          ({ data: avgHoldWinData, error: avgHoldWinError } = await supabase.rpc("avghold_optionwins1year"));
+          break;
+        default:
+          ({ data: avgHoldWinData, error: avgHoldWinError } = await supabase.rpc("avghold_optionwins"));
+      }
+      setAvgHoldWin(
+        avgHoldWinError ? null : (Array.isArray(avgHoldWinData) ? avgHoldWinData[0]?.avg_hold_win : avgHoldWinData)
+      );  
+
+      // Function to fetch average hold period on losers 
+      let avgHoldLossData, avgHoldLossError;
+      switch (timeFilter) {
+        case "7days":
+          ({ data: avgHoldLossData, error: avgHoldLossError } = await supabase.rpc("avghold_optionwins7day"));
+          break;
+        case "30days":
+          ({ data: avgHoldLossData, error: avgHoldLossError } = await supabase.rpc("avghold_optionwins30day"));
+          break;
+        case "90days":
+          ({ data: avgHoldLossData, error: avgHoldLossError } = await supabase.rpc("avghold_optionwins90day"));
+          break;
+        case "1year":
+          ({ data: avgHoldLossData, error: avgHoldLossError } = await supabase.rpc("avghold_optionwins1year"));
+          break;
+        default:
+          ({ data: avgHoldLossData, error: avgHoldLossError } = await supabase.rpc("avghold_optionwins"));
+      }
+      setAvgHoldLoss(
+        avgHoldLossError ? null : (Array.isArray(avgHoldLossData) ? avgHoldLossData[0]?.avg_hold_loss : avgHoldLossData)
       );
   
 
@@ -416,6 +462,7 @@ const Optionsfilter: React.FC<OptionsfilterProps> = ({ timeFilter }) => {
       </Box>
 
       {/* ROI Box */}
+      <Flex direction="column" w="40%" mt={8} mr={4}>
       <Box
       maxW="sm"
       borderWidth="1px"
@@ -437,6 +484,54 @@ const Optionsfilter: React.FC<OptionsfilterProps> = ({ timeFilter }) => {
             : "No Data"}
             </Text>
             </Box>
+            
+            {/* Avg Hold period on winners box */}
+            <Box
+            maxW="sm"
+            borderWidth="1px"
+            borderRadius="lg"
+            overflow="hidden"
+            boxShadow="md"
+            p={6}
+            mt={8}
+            bg={boxBg}
+            color={textColor}>
+              <Heading as="h2" size="md" mb={4}>
+                Avg Hold on Winners
+                </Heading>
+                <Text fontSize="2xl" fontWeight="bold" color="cyan.500">
+                  {loading
+                  ? "Loading..."
+                  : avgHoldWin !== null
+                  ? `${avgHoldWin.toFixed(2)} days`
+                  : "No Data"}
+                  </Text>
+                  </Box>
+
+            {/* Avg Hold period on losers box */}
+            <Box
+            maxW="sm"
+            borderWidth="1px"
+            borderRadius="lg"
+            overflow="hidden"
+            boxShadow="md"
+            p={6}
+            mt={8}
+            bg={boxBg}
+            color={textColor}
+            >
+              <Heading as="h2" size="md" mb={4}>
+                Avg Hold on Losers
+                </Heading>
+                <Text fontSize="2xl" fontWeight="bold" color="pink.400">
+                  {loading
+                  ? "Loading..."
+                  : avgHoldLoss !== null
+                  ? `${avgHoldLoss.toFixed(2)} days`
+                  : "No Data"}
+                  </Text>
+                  </Box>
+                  </Flex>
       </Flex>
       </>
   );

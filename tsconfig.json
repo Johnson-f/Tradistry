@@ -18,7 +18,7 @@
     /* Completeness */
     "noEmit": true                                    /* Disable emitting files from a compilation. */
   },
-  "include": ["src/**/*"],                            /* Include all files in the src folder. */
+  "include": ["src/**/*", "server/Serverless files/Calendarfetch2.js", "server/Serverless files/Calendarfetch1.js"],                            /* Include all files in the src folder. */
   "exclude": ["node_modules"]                         /* Exclude the node_modules folder. */
 }
 

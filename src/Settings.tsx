@@ -25,6 +25,8 @@ import {
   Divider,
   useToast,
 } from '@chakra-ui/react'
+import NotificationSettingsComponent from './components/NotificationSettings'
+import { useNotificationSettings } from './hooks/useNotificationSettings'
 
 // Types
 type ThemeType = 'light' | 'dark' | 'system';
@@ -417,49 +419,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
         );
 
         case 'Notifications':
-          return (
-            <VStack spacing={6} align="stretch">
-              <Box>
-                <Text fontSize="xl" mb={2}>Notifications</Text>
-                <Text fontSize="sm" color="gray.500" mb={6}>
-                  Manage your notification preferences.
-                </Text>
-              </Box>
-              {/* ...other notification toggles... */}
-              <FormControl display="flex" alignItems="center" justifyContent="space-between">
-                <Box>
-                  <FormLabel htmlFor="smart-reminders" mb={0} fontWeight="medium">
-                    Smart Reminders 
-                  </FormLabel>
-                  <Text fontSize="sm" color="gray.500">
-                    Get automatic reminders to keep you disciplined with your trading.
-                  </Text>
-                </Box>
-                <Switch
-                   id="smart-reminders"
-                   isChecked={notifications.smartReminders}
-                   onChange={handleSmartRemindersToggle}
-                   colorScheme="blue"
-                   />
-              </FormControl>
-              <FormControl display="flex" alignItems="center" justifyContent="space-between">
-                <Box>
-                  <FormLabel htmlFor="email-reminders" mb={0} fontWeight="medium">
-                    Email Notifications 
-                  </FormLabel>
-                  <Text fontSize="sm" color="gray.500">
-                    Receive smart reminders by Email.
-                  </Text>
-                  </Box>
-                  <Switch 
-                    id="email-reminders"
-                    isChecked={notifications.alwaysSendEmail}
-                    onChange={handleEmailNotificationsToggle}
-                    colorScheme="blue"
-                    />
-              </FormControl>
-            </VStack>
-          );
+          return <NotificationSettingsComponent />;
 
           case 'Security':
             return (

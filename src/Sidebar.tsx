@@ -233,7 +233,7 @@ export default function Sidebar({ onWidthChange }: SidebarProps) {
         >
           <ModernSidebarItem
             icon={Calendar}
-            label="Trading Calendar"
+            label="Calendar"
             to="/Calendar.jsx"
             collapsed={isModernCollapsed}
           />

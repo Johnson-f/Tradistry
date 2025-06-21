@@ -21,16 +21,110 @@ import { RingLoader } from 'react-spinners'
 import ErrorBoundary from './components/Error'
 import { ChakraProvider } from '@chakra-ui/react'
 import { ThemeProvider } from './Settings'
-
-console.log('ChakraProvider:', ChakraProvider);
+import Notes from './Notes'
+import { useSmartNotifications } from './hooks/useSmartNotifications'
+import { useManualReminderNotifications } from './hooks/useManualReminderNotifications'
+import NotificationTester from './components/NotificationTester'
 
 // Initialize React Query Client 
 const queryClient = new QueryClient()
+
+// Function to log user session to Supabase
+async function logUserSession() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  const localSessionId = localStorage.getItem('currentSessionId');
+  let sessionExists = false;
+
+  if (!localSessionId) {
+    // Check if session exists in DB
+    const { data, error } = await supabase
+      .from('user_sessions')
+      .select('id')
+      .eq('id', localSessionId)
+      .eq('user_id', user.id)
+      .single();
+      sessionExists = !!data && !error;
+  }
+
+  if (!sessionExists) {
+    // Insert new session 
+    const deviceInfo = `${navigator.platform} - ${navigator.userAgent}`;
+    let ip_address = '';
+    
+    try {
+      const res = await fetch('https://api.ipify.org?format=json');
+      const json = await res.json();
+      ip_address = json.ip;
+    } catch (error) {
+      console.error('Error fetching IP address:', error);
+    }
+    
+    const { data, error } = await supabase.from('user_sessions').insert({
+      user_id: user.id,
+      device_info: deviceInfo,
+      ip_address,
+    }).select('id').single();
+    
+    if (error) {
+      console.error('Error inserting session:', error.message);
+    }
+    
+    if (data && data[0]?.id) {
+      localStorage.setItem('currentSessionId', data[0].id);
+    }
+  }
+}
+
+// Function to ensure user profile exists
+async function ensureUserProfile() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  try {
+    // Check if profile exists
+    const { error: fetchError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', user.id)
+      .single();
+
+    // If profile doesn't exist, create one
+    if (fetchError && fetchError.code === 'PGRST116') {
+      console.log('Creating user profile for:', user.id);
+      
+      const { error: createError } = await supabase
+        .from('profiles')
+        .insert({
+          id: user.id,
+          full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+          email: user.email,
+          always_send_email: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+
+      if (createError) {
+        console.error('Error creating user profile:', createError);
+      } else {
+        console.log('User profile created successfully');
+      }
+    }
+  } catch (error) {
+    console.error('Error ensuring user profile:', error);
+  }
+}
 
 const App = () => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [sidebarWidth, setSidebarWidth] = useState(256) // Default expanded width
+
+  // Use smart notifications
+  useSmartNotifications();
+  
+  // Use manual reminder notifications
+  useManualReminderNotifications();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -44,6 +138,11 @@ const App = () => {
       listener.subscription.unsubscribe()
     }
   }, [])
+
+  useEffect(() => {
+    logUserSession();
+    ensureUserProfile(); // Ensure user profile exists
+  }, []);
   
   // Loading state
   if (loading) {
@@ -68,9 +167,10 @@ const App = () => {
         {!user ? (
           <>
             <Route path="/" element={<Landingpage />} />
-            <Route path="/Login.jsx" element={<Login />} />
+            <Route path="/Login" element={<Login />} />
             <Route path="/SignUp" element={<SignUp />} />
             <Route path="/ForgotPassword" element={<ForgotPassword />} />
+            <Route path="/NotificationTester" element={<NotificationTester />} />
             <Route path="*" element={<Navigate to="/" />} />
           </>
         ) : (
@@ -94,10 +194,12 @@ const App = () => {
                       </ErrorBoundary>
                       } 
                       />
-                    <Route path="/Analytics.jsx" element={<Analytics />} />
+                    <Route path="/Analytics" element={<Analytics />} />
                     <Route path="/Calendar.jsx" element={<Calendar />} />
+                    <Route path="/Notes" element={<Notes />} />
                     <Route path="/Settings" element={<Settings />} />
-                    <Route path="/Login.jsx" element={<Login />} />
+                    <Route path="/Login" element={<Login />} />
+                    <Route path="/NotificationTester" element={<NotificationTester />} />
                     <Route path="*" element = {<Navigate to="/Dashboard" />} />
                   </Routes>
                 </main>

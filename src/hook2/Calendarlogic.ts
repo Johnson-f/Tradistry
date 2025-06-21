@@ -6,10 +6,11 @@ export const useCalendarLogic = (initialDate = new Date()) => {
     const [tradingData, setTradingData] = useState<Record<number, { pnl: number; trades: number }>>({}); // Grouped entries by day
     const [loading, setLoading] = useState(true); // Loading state for the calendar 
     const [stats, setStats] = useState<any>(null); // Summary statistics for the current month
-    const [weeklyData, setWeeklyData] = useState<any[]>([]); // Weekly aggregated data 
+    const [weeklyData, setWeeklyData] = useState<any[]>([]); // Final, augmented weekly data
+    const [rawWeeklyData, setRawWeeklyData] = useState<any[]>([]); // Data directly from RPC
     const [entries, setEntries] = useState<any[]>([]); 
 
-    // Fetch entries for the current month
+    // Fetch entries for the current month (now includes both entry_table and option_table)
     useEffect(() => {
         const fetchEntries = async () => {
             try {
@@ -20,19 +21,19 @@ export const useCalendarLogic = (initialDate = new Date()) => {
                 const to = new Date(year, month, 0);
                 const toStr = `${year}-${month.toString().padStart(2, '0')}-${to.getDate().toString().padStart(2, '0')}`;
 
-                console.log('Fetching data for:', { from, toStr });
+                console.log('Fetching combined trading data for:', { from, toStr });
 
-                // Fetch aggregated trading data by day using RPC
+                // Fetch aggregated trading data by day using RPC (now includes options)
                 const { data: aggData, error: aggError } = await supabase
                     .rpc('aggregate_tradesby_day', {
                         p_start_date: from,
                         p_end_date: toStr
                     });
                 
-                console.log('RPC Response:', { aggData, aggError });
+                console.log('Combined RPC Response (entries + options):', { aggData, aggError });
 
                 if (aggError) {
-                    console.error('Error fetching aggregated data:', aggError);
+                    console.error('Error fetching combined trading data:', aggError);
                     setTradingData({});
                 } else if (aggData && aggData.length > 0) {
                     const grouped: Record<number, { pnl: number; trades: number }> = {};
@@ -43,10 +44,10 @@ export const useCalendarLogic = (initialDate = new Date()) => {
                             trades: parseInt(row.total_trades) || 0 
                         };
                     });
-                    console.log('Grouped data:', grouped);
+                    console.log('Combined grouped data (entries + options):', grouped);
                     setTradingData(grouped);
                 } else {
-                    console.log('No data returned from RPC');
+                    console.log('No combined trading data returned from RPC');
                     setTradingData({});
                 }
             } catch (error) {
@@ -59,7 +60,7 @@ export const useCalendarLogic = (initialDate = new Date()) => {
         fetchEntries();
     }, [currentDate]);
 
-    // Summary statistics for the current month using RPC
+    // Summary statistics for the current month using RPC (now includes options)
     useEffect(() => {
         const fetchStats = async () => {
             try {
@@ -69,18 +70,18 @@ export const useCalendarLogic = (initialDate = new Date()) => {
                 const to = new Date(year, month, 0);
                 const p_end_date = `${year}-${month.toString().padStart(2, '0')}-${to.getDate().toString().padStart(2, '0')}`;
 
-                console.log('Fetching stats for:', { p_start_date, p_end_date });
+                console.log('Fetching combined stats for:', { p_start_date, p_end_date });
 
                 const { data, error } = await supabase  
                     .rpc('monthly_trading_summary', {
-                        p_end_date,
-                        p_start_date
+                        p_start_date,
+                        p_end_date
                     });
 
-                console.log('Stats RPC Response:', { data, error });
+                console.log('Combined Stats RPC Response (entries + options):', { data, error });
 
                 if (error) {
-                    console.error('Error fetching stats:', error);
+                    console.error('Error fetching combined stats:', error);
                     setStats(null);
                 } else {
                     setStats(data && data.length > 0 ? data[0] : null);
@@ -93,7 +94,7 @@ export const useCalendarLogic = (initialDate = new Date()) => {
         fetchStats();
     }, [currentDate]);
 
-    // Group trades by week (replace this with rpc)
+    // Group trades by week using RPC (now includes options)
     useEffect(() => {
         const fetchWeeklySummary = async () => {
             try {
@@ -103,34 +104,78 @@ export const useCalendarLogic = (initialDate = new Date()) => {
                 const to = new Date(year, month, 0);
                 const p_end_date = `${year}-${month.toString().padStart(2, '0')}-${to.getDate().toString().padStart(2, '0')}`;
 
-                console.log('Fetching weekly summary for:', { p_start_date, p_end_date });
+                console.log('Fetching combined weekly summary for:', { p_start_date, p_end_date });
 
                 const { data, error } = await supabase
                     .rpc('weekly_summary', {
-                        p_end_date,
-                        p_start_date
+                        p_start_date,
+                        p_end_date
                     });
 
-                console.log('Weekly RPC Response:', { data, error });
+                console.log('Combined Weekly RPC Response (entries + options):', { data, error });
 
                 if (error) {
-                    console.error('Error fetching weekly summary:', error);
-                    setWeeklyData([]);
+                    console.error('Error fetching combined weekly summary:', error);
+                    setRawWeeklyData([]);
                 } else {
-                    setWeeklyData(data || []);
+                    setRawWeeklyData(data || []);
                 }
             } catch (error) {
                 console.error('Error in fetchWeeklySummary:', error);
-                setWeeklyData([]);
+                setRawWeeklyData([]);
             }
         };
         fetchWeeklySummary();
     }, [currentDate]);
 
+    // This effect augments weekly data with P&L calculated from daily data (now includes options)
     useEffect(() => {
-        console.log('Stats:', stats);
-        console.log('TradingData:', tradingData);
-        console.log('WeeklyData:', weeklyData);
+        if (rawWeeklyData.length > 0 && Object.keys(tradingData).length > 0) {
+            
+            // Helper to get the week number of a date (Sunday as the first day of the week)
+            const getWeekOfYear = (date: Date) => {
+                const target = new Date(date.valueOf());
+                const dayNr = (date.getDay() + 6) % 7;
+                target.setDate(target.getDate() - dayNr + 3);
+                const firstThursday = target.valueOf();
+                target.setMonth(0, 1);
+                if (target.getDay() !== 4) {
+                    target.setMonth(0, 1 + ((4 - target.getDay()) + 7) % 7);
+                }
+                return 1 + Math.ceil((firstThursday - target.getTime()) / 604800000);
+            };
+            
+            const weeklyPnlMap = new Map<number, number>();
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+
+            for (const dayOfMonth in tradingData) {
+                const dayData = tradingData[dayOfMonth];
+                if (dayData && typeof dayData.pnl === 'number') {
+                    const date = new Date(year, month, parseInt(dayOfMonth, 10));
+                    const weekNo = getWeekOfYear(date);
+                    
+                    const currentPnl = weeklyPnlMap.get(weekNo) || 0;
+                    weeklyPnlMap.set(weekNo, currentPnl + dayData.pnl);
+                }
+            }
+            
+            const augmentedData = rawWeeklyData.map(week => ({
+                ...week,
+                total_pnl: weeklyPnlMap.get(week.week_number) || week.weekly_pnl || 0,
+            }));
+            
+            setWeeklyData(augmentedData);
+        } else {
+             // If there's no trading data, still pass the raw weekly data (with PnL as 0)
+            setWeeklyData(rawWeeklyData.map(week => ({...week, total_pnl: week.weekly_pnl || 0})));
+        }
+    }, [tradingData, rawWeeklyData, currentDate]);
+
+    useEffect(() => {
+        console.log('Combined Stats (entries + options):', stats);
+        console.log('Combined TradingData (entries + options):', tradingData);
+        console.log('Combined WeeklyData (entries + options):', weeklyData);
     }, [stats, tradingData, weeklyData]);
 
     // Builds the calendar grid

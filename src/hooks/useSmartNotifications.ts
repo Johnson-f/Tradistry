@@ -1,21 +1,20 @@
+// This hook is used to manage smart notifications 
 import { useEffect, useRef } from 'react';
 import { useToast } from '@chakra-ui/react';
 import { notificationService } from '../services/NotificationService';
 import { supabase } from '../supabaseClient';
+import { useNotificationSettings } from './useNotificationSettings';
 
 export function useSmartNotifications() {
   const toast = useToast();
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const { settings } = useNotificationSettings();
 
   useEffect(() => {
     const checkNotifications = async () => {
       try {
-        // Get user's notification preferences
-        const preferences = await notificationService.getUserNotificationPreferences();
-        if (!preferences) {
-          console.log('Could not fetch notification preferences, using defaults');
-          // Continue with default preferences
-        } else if (!preferences.smartReminders) {
+        // Check if smart reminders are enabled
+        if (!settings.smartReminders) {
           console.log('Smart reminders disabled by user');
           return;
         }
@@ -39,6 +38,34 @@ export function useSmartNotifications() {
             continue;
           }
 
+          // Check specific notification type settings
+          let shouldShowNotification = true;
+          
+          switch (notification.notification_type) {
+            case 'trade_reminder':
+              shouldShowNotification = settings.tradeReminders;
+              break;
+            case 'market_open':
+              shouldShowNotification = settings.marketOpenReminders;
+              break;
+            case 'weekly_report':
+              shouldShowNotification = settings.weeklyReports;
+              break;
+            case 'achievement':
+              shouldShowNotification = settings.achievementNotifications;
+              break;
+            case 'system_alert':
+              shouldShowNotification = settings.systemAlerts;
+              break;
+            default:
+              shouldShowNotification = true;
+          }
+
+          if (!shouldShowNotification) {
+            console.log(`Skipping notification ${notification.id} - type disabled by user`);
+            continue;
+          }
+
           // Show toast notification if it supports toast or both
           if (notification.notification_category === 'toast' || 
               notification.notification_category === 'both') {
@@ -50,7 +77,7 @@ export function useSmartNotifications() {
                 status = 'success';
                 break;
               case 'alert':
-              case 'system':
+              case 'system_alert':
                 status = 'warning';
                 break;
               case 'reminder':
@@ -79,7 +106,7 @@ export function useSmartNotifications() {
           }
 
           // Send email if user has email notifications enabled
-          if (preferences?.alwaysSendEmail && 
+          if (settings.emailNotifications && 
               (notification.notification_category === 'email' || notification.notification_category === 'both') &&
               notification.email_subject && notification.email_body) {
             
@@ -115,12 +142,40 @@ export function useSmartNotifications() {
         clearInterval(intervalRef.current);
       }
     };
-  }, [toast]);
+  }, [toast, settings]);
 
   // Listen for custom notification events (for manual triggers)
   useEffect(() => {
     const handleNotificationEvent = (event: CustomEvent) => {
       const { title, message, type, priority, requiresAction } = event.detail;
+      
+      // Check if the notification type is enabled
+      let shouldShowNotification = true;
+      
+      switch (type) {
+        case 'trade_reminder':
+          shouldShowNotification = settings.tradeReminders;
+          break;
+        case 'market_open':
+          shouldShowNotification = settings.marketOpenReminders;
+          break;
+        case 'weekly_report':
+          shouldShowNotification = settings.weeklyReports;
+          break;
+        case 'achievement':
+          shouldShowNotification = settings.achievementNotifications;
+          break;
+        case 'system_alert':
+          shouldShowNotification = settings.systemAlerts;
+          break;
+        default:
+          shouldShowNotification = true;
+      }
+
+      if (!shouldShowNotification) {
+        console.log(`Skipping manual notification - type ${type} disabled by user`);
+        return;
+      }
       
       let status: 'info' | 'success' | 'warning' | 'error' = 'info';
       switch (type) {
@@ -128,7 +183,7 @@ export function useSmartNotifications() {
           status = 'success';
           break;
         case 'alert':
-        case 'system':
+        case 'system_alert':
           status = 'warning';
           break;
         default:
@@ -152,20 +207,44 @@ export function useSmartNotifications() {
     return () => {
       window.removeEventListener('notification-toast', handleNotificationEvent as EventListener);
     };
-  }, [toast]);
+  }, [toast, settings]);
 
   return {
     checkNotifications: () => {
       // Expose a function to manually check notifications
       const checkNotifications = async () => {
         try {
-          const preferences = await notificationService.getUserNotificationPreferences();
-          if (!preferences?.smartReminders) return;
+          if (!settings.smartReminders) return;
 
           const notifications = await notificationService.getUserNotifications();
           for (const notification of notifications) {
             const shouldSend = await notificationService.shouldSendNotification(notification.id);
             if (!shouldSend) continue;
+
+            // Check specific notification type settings
+            let shouldShowNotification = true;
+            
+            switch (notification.notification_type) {
+              case 'trade_reminder':
+                shouldShowNotification = settings.tradeReminders;
+                break;
+              case 'market_open':
+                shouldShowNotification = settings.marketOpenReminders;
+                break;
+              case 'weekly_report':
+                shouldShowNotification = settings.weeklyReports;
+                break;
+              case 'achievement':
+                shouldShowNotification = settings.achievementNotifications;
+                break;
+              case 'system_alert':
+                shouldShowNotification = settings.systemAlerts;
+                break;
+              default:
+                shouldShowNotification = true;
+            }
+
+            if (!shouldShowNotification) continue;
 
             if (notification.notification_category === 'toast' || 
                 notification.notification_category === 'both') {
@@ -176,7 +255,7 @@ export function useSmartNotifications() {
                   status = 'success';
                   break;
                 case 'alert':
-                case 'system':
+                case 'system_alert':
                   status = 'warning';
                   break;
                 default:
@@ -202,6 +281,6 @@ export function useSmartNotifications() {
         }
       };
       checkNotifications();
-    }
+    },
   };
 } 

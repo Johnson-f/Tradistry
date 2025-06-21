@@ -1,10 +1,29 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Bell, Plus } from 'lucide-react';
 import { supabase } from '../supabaseClient'; 
 import { useCalendarLogic } from '../hook2/Calendarlogic';
 import { Box, Text, Flex, Button, useColorModeValue } from "@chakra-ui/react";
 import { Grid, GridItem, VStack, HStack, Badge, Spinner, useToast } from "@chakra-ui/react";
+import { 
+  Modal, 
+  ModalOverlay, 
+  ModalContent, 
+  ModalHeader, 
+  ModalFooter, 
+  ModalBody, 
+  ModalCloseButton,
+  useDisclosure,
+  Divider,
+  List,
+  ListItem,
+  ListIcon
+} from "@chakra-ui/react";
 import { motion, AnimatePresence } from "framer-motion";
+import { CheckCircle, XCircle, Minus, TrendingUp, TrendingDown, DollarSign, Calendar, Clock } from 'lucide-react';
+import { useNotificationSettings } from '../hooks/useNotificationSettings';
+import { useCalendarData } from '../hooks/useCalendarData';
+import { ManualReminderModal } from './ManualReminderModal';
+import { ReminderListModal } from './ReminderListModal';
 
 // Utility Functions
 const formatCurrency = (amount: number) => {
@@ -23,6 +42,19 @@ const getDayBg = (pnl: number, colorMode: string) => {
     if (pnl > -5000) return colorMode === "light" ? "red.200" : "red.300";
     if (pnl > -15000) return colorMode === "light" ? "red.400" : "red.500";
     return colorMode === "light" ? "red.600" : "red.700";
+};
+
+// Notification settings key
+const NOTIFICATION_SETTINGS_KEY = 'notifications';
+
+// Helper to get smartReminders setting from localStorage 
+function getSmartRemindersSetting() {
+  try {
+    const settings = JSON.parse(localStorage.getItem(NOTIFICATION_SETTINGS_KEY) || '{}');
+    return settings.smartReminders !== false; // default to true if not set 
+  } catch {
+    return true;
+  }
 }
 
 // UI components for the stats card, calendar header, and grid 
@@ -62,7 +94,7 @@ const StatsCard = ({ title, value, subtitle, hasTooltip = true, delay = 0 }: any
 };
 
 // Function to render the calendar header 
-const CalendarHeader = ({ currentDate, onNavigate }: any) => {
+const CalendarHeader = ({ currentDate, onNavigate, onCreateReminder, onViewReminders }: any) => {
     const headerBg = useColorModeValue("gray.200", "gray.800");
     const badgeBg = useColorModeValue("gray.300", "gray.700");
     return (
@@ -88,15 +120,35 @@ const CalendarHeader = ({ currentDate, onNavigate }: any) => {
           <ChevronRight />
         </Button>
       </HStack>
-      <Box bg={badgeBg} px={3} py={1} rounded="md" fontSize="sm">
-        This month
-      </Box>
+      <HStack spacing={3}>
+        <Button
+          leftIcon={<Plus size={16} />}
+          size="sm"
+          colorScheme="blue"
+          variant="outline"
+          onClick={onCreateReminder}
+        >
+          New Reminder
+        </Button>
+        <Button
+          leftIcon={<Bell size={16} />}
+          size="sm"
+          colorScheme="purple"
+          variant="outline"
+          onClick={onViewReminders}
+        >
+          My Reminders
+        </Button>
+        <Box bg={badgeBg} px={3} py={1} rounded="md" fontSize="sm">
+          This month
+        </Box>
+      </HStack>
     </Flex>
     );
 };
 
 // Function to render the calendar grid 
-const CalendarGrid = ({ days }: any) => {
+const CalendarGrid = ({ days, onDateClick }: any) => {
     const borderColor = useColorModeValue("gray.200", "gray.700");
     const todayRing = useColorModeValue("blue.400", "blue.300");
     const colorMode = useColorModeValue("light", "dark");
@@ -125,6 +177,14 @@ const CalendarGrid = ({ days }: any) => {
             bg={dayInfo.dayData ? getDayBg(dayInfo.dayData.pnl, colorMode) : useColorModeValue("gray.100", "gray.800")}
             borderRadius="md"
             boxShadow={dayInfo.isToday ? `0 0 0 2px ${todayRing}` : undefined}
+            cursor="pointer"
+            transition="all 0.2s"
+            _hover={{
+              transform: "scale(1.05)",
+              boxShadow: "lg",
+              zIndex: 1
+            }}
+            onClick={() => onDateClick(dayInfo)}
           >
             <Text fontSize="xs" color="gray.400" mb={1}>{dayInfo.day}</Text>
             {dayInfo.dayData && (
@@ -146,6 +206,7 @@ const CalendarGrid = ({ days }: any) => {
 
 // Function to render the weekly summary 
   const WeeklySummary = ({ weeklyData }: any) => {
+    console.log('WeeklyData in component:', weeklyData);
     const cardBg = useColorModeValue("white", "whiteAlpha.100");
     const borderColor = useColorModeValue("gray.200", "whiteAlpha.300");
     const textColor = useColorModeValue("gray.600", "gray.400");
@@ -153,11 +214,23 @@ const CalendarGrid = ({ days }: any) => {
     const red = useColorModeValue("red.500", "red.400");
     const blue = useColorModeValue("blue.500", "blue.300");
 
+    // Debug: Log the weekly data structure
+    console.log('WeeklyData in component:', weeklyData);
+
     return (
         <VStack spacing={4} align="stretch">
       {weeklyData && weeklyData.length > 0 ? (
         weeklyData.map((week: any, index: number) => {
-          const netPnl = week.weekly_pnl ?? week.total_pnl ?? week.pnl ?? 0;
+          console.log('Week data:', week);
+          // Debug: Log each week's structure
+          console.log('Week data:', week);
+          
+          // Try different possible property names for P&L
+          const netPnl = week.total_pnl ?? week.weekly_pnl ?? week.pnl ?? 0;
+          
+          // Debug: Log the calculated P&L
+          console.log('Calculated netPnl:', netPnl, 'for week:', week);
+          
           return (
             <Box 
             key={index} 
@@ -191,7 +264,242 @@ const CalendarGrid = ({ days }: any) => {
     </VStack>
     );
   };
-  
+
+// Date Detail Modal Component
+const DateDetailModal = ({ isOpen, onClose, selectedDate, dayData }: any) => {
+  const modalBg = useColorModeValue("white", "gray.800");
+  const textColor = useColorModeValue("gray.800", "white");
+  const green = useColorModeValue("green.500", "green.400");
+  const red = useColorModeValue("red.500", "red.400");
+  const blue = useColorModeValue("blue.500", "blue.300");
+  const orange = useColorModeValue("orange.500", "orange.400");
+  const purple = useColorModeValue("purple.500", "purple.400");
+
+  // Fetch economic and earnings data for the selected date
+  const { economicEvents, earningsData, loading: calendarDataLoading } = useCalendarData(selectedDate);
+
+  // Debug logging
+  console.log('DateDetailModal - selectedDate:', selectedDate);
+  console.log('DateDetailModal - economicEvents:', economicEvents);
+  console.log('DateDetailModal - earningsData:', earningsData);
+  console.log('DateDetailModal - calendarDataLoading:', calendarDataLoading);
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+  };
+
+  const formatTime = (timeStr: string) => {
+    if (!timeStr) return 'N/A';
+    return timeStr;
+  };
+
+  const getImportanceColor = (importance: string) => {
+    switch (importance?.toLowerCase()) {
+      case 'high': return red;
+      case 'medium': return orange;
+      case 'low': return green;
+      default: return blue;
+    }
+  };
+
+  const getMarketImpactIcon = (impact: string) => {
+    switch (impact?.toLowerCase()) {
+      case 'bullish': return TrendingUp;
+      case 'bearish': return TrendingDown;
+      default: return Minus;
+    }
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} size="xl" scrollBehavior="inside">
+      <ModalOverlay />
+      <ModalContent bg={modalBg} maxH="90vh">
+        <ModalHeader color={textColor}>
+          {selectedDate ? formatDate(selectedDate) : 'Date Details'}
+        </ModalHeader>
+        <ModalCloseButton />
+        <ModalBody>
+          <VStack spacing={6} align="stretch">
+            {/* Trading Summary Section */}
+            {dayData && (
+              <Box p={4} bg={useColorModeValue("gray.50", "gray.700")} rounded="lg">
+                <Text fontSize="lg" fontWeight="bold" mb={3}>Trading Summary (Stocks & Options)</Text>
+                <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+                  <Box>
+                    <Text fontSize="sm" color="gray.500">Net P&L</Text>
+                    <Text fontSize="xl" fontWeight="bold" color={dayData.pnl >= 0 ? green : red}>
+                      {formatCurrency(dayData.pnl)}
+                    </Text>
+                  </Box>
+                  <Box>
+                    <Text fontSize="sm" color="gray.500">Total Trades</Text>
+                    <Text fontSize="xl" fontWeight="bold" color={blue}>
+                      {dayData.trades}
+                    </Text>
+                  </Box>
+                </Grid>
+              </Box>
+            )}
+
+            {/* Economic Events Section */}
+            {economicEvents.length > 0 && (
+              <Box>
+                <Text fontSize="lg" fontWeight="bold" mb={3} color={purple}>
+                  Economic Events
+                </Text>
+                <List spacing={3}>
+                  {economicEvents.map((event: any, index: number) => (
+                    <ListItem key={index} p={3} bg={useColorModeValue("purple.50", "purple.900")} rounded="md">
+                      <Flex justify="space-between" align="center" mb={2}>
+                        <HStack>
+                          <ListIcon 
+                            as={getMarketImpactIcon(event.market_impact)} 
+                            color={getImportanceColor(event.importance_level)} 
+                          />
+                          <Text fontWeight="semibold">
+                            {event.event_name}
+                          </Text>
+                        </HStack>
+                        <Badge colorScheme={event.importance_level?.toLowerCase() === 'high' ? 'red' : 
+                                           event.importance_level?.toLowerCase() === 'medium' ? 'orange' : 'green'}>
+                          {event.importance_level || 'Medium'}
+                        </Badge>
+                      </Flex>
+                      <Grid templateColumns="repeat(2, 1fr)" gap={2} fontSize="sm" color="gray.500">
+                        <Text>Time: {formatTime(event.event_time)}</Text>
+                        <Text>Country: {event.country}</Text>
+                        {event.actual_value !== null && (
+                          <Text>Actual: {event.actual_value}{event.unit_of_measure ? ` ${event.unit_of_measure}` : ''}</Text>
+                        )}
+                        {event.forecast_value !== null && (
+                          <Text>Forecast: {event.forecast_value}{event.unit_of_measure ? ` ${event.unit_of_measure}` : ''}</Text>
+                        )}
+                      </Grid>
+                      {event.description && (
+                        <Text fontSize="sm" mt={2} color="gray.600">
+                          {event.description}
+                        </Text>
+                      )}
+                    </ListItem>
+                  ))}
+                </List>
+              </Box>
+            )}
+
+            {/* Earnings Data Section */}
+            {earningsData.length > 0 && (
+              <Box>
+                <Text fontSize="lg" fontWeight="bold" mb={3} color={orange}>
+                  Earnings Reports
+                </Text>
+                <List spacing={3}>
+                  {earningsData.map((earning: any, index: number) => (
+                    <ListItem key={index} p={3} bg={useColorModeValue("orange.50", "orange.900")} rounded="md">
+                      <Flex justify="space-between" align="center" mb={2}>
+                        <HStack>
+                          <ListIcon as={DollarSign} color={orange} />
+                          <Text fontWeight="semibold">
+                            {earning.symbol}
+                          </Text>
+                        </HStack>
+                        <Text fontSize="sm" color="gray.500">
+                          Q{earning.fiscal_quarter} {earning.fiscal_year}
+                        </Text>
+                      </Flex>
+                      <Grid templateColumns="repeat(2, 1fr)" gap={2} fontSize="sm" color="gray.500">
+                        {earning.eps_estimate !== null && (
+                          <Text>EPS Est: ${earning.eps_estimate}</Text>
+                        )}
+                        {earning.revenue_estimate !== null && (
+                          <Text>Revenue Est: ${earning.revenue_estimate}M</Text>
+                        )}
+                      </Grid>
+                    </ListItem>
+                  ))}
+                </List>
+              </Box>
+            )}
+
+            {/* Trade Details Section */}
+            {dayData?.tradeDetails && dayData.tradeDetails.length > 0 && (
+              <Box>
+                <Text fontSize="lg" fontWeight="bold" mb={3}>Trade Details</Text>
+                <List spacing={3}>
+                  {dayData.tradeDetails.map((trade: any, index: number) => (
+                    <ListItem key={index} p={3} bg={useColorModeValue("gray.50", "gray.700")} rounded="md">
+                      <Flex justify="space-between" align="center" mb={2}>
+                        <HStack>
+                          <ListIcon 
+                            as={trade.pnl >= 0 ? CheckCircle : XCircle} 
+                            color={trade.pnl >= 0 ? green : red} 
+                          />
+                          <Text fontWeight="semibold">
+                            {trade.symbol || `Trade ${index + 1}`}
+                          </Text>
+                        </HStack>
+                        <Text 
+                          fontWeight="bold" 
+                          color={trade.pnl >= 0 ? green : red}
+                        >
+                          {formatCurrency(trade.pnl)}
+                        </Text>
+                      </Flex>
+                      <Grid templateColumns="repeat(2, 1fr)" gap={2} fontSize="sm" color="gray.500">
+                        <Text>Entry: ${trade.entry_price || 'N/A'}</Text>
+                        <Text>Exit: ${trade.exit_price || 'N/A'}</Text>
+                        <Text>Size: {trade.position_size || 'N/A'}</Text>
+                        <Text>Type: {trade.trade_type || 'N/A'}</Text>
+                      </Grid>
+                    </ListItem>
+                  ))}
+                </List>
+              </Box>
+            )}
+
+            {/* Notes Section */}
+            {dayData?.notes && (
+              <Box>
+                <Text fontSize="lg" fontWeight="bold" mb={3}>Notes</Text>
+                <Box p={3} bg={useColorModeValue("blue.50", "blue.900")} rounded="md">
+                  <Text fontSize="sm" color={useColorModeValue("blue.800", "blue.100")}>
+                    {dayData.notes}
+                  </Text>
+                </Box>
+              </Box>
+            )}
+
+            {/* Loading State */}
+            {calendarDataLoading && (
+              <Flex justify="center" py={4}>
+                <Spinner color="blue.400" />
+              </Flex>
+            )}
+
+            {/* No Data Message */}
+            {!dayData && !economicEvents.length && !earningsData.length && !calendarDataLoading && (
+              <Box textAlign="center" py={8}>
+                <Text color="gray.500">No data available for this date.</Text>
+                <Text fontSize="sm" color="gray.400" mt={2}>
+                  This could be a weekend, holiday, or a day with no trading activity or market events.
+                </Text>
+              </Box>
+            )}
+          </VStack>
+        </ModalBody>
+        <ModalFooter>
+          <Button colorScheme="blue" onClick={onClose}>
+            Close
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+  );
+};
 
 // Main Component
 const Calendarbody = () => {
@@ -205,6 +513,7 @@ const Calendarbody = () => {
   } = useCalendarLogic();
 
   const toast = useToast();
+  const { settings } = useNotificationSettings();
 
   const bg = useColorModeValue(
     "linear-gradient(to-br, white, gray.100)",
@@ -214,6 +523,42 @@ const Calendarbody = () => {
   const gridGap = { base: 4, lg: 6 };
 
   const calendarDays = getCalendarDays();
+  // Modal state management
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedDayData, setSelectedDayData] = useState<any>(null);
+  // State to track if "no data" notification has been shown
+  const [noDataNotificationShown, setNoDataNotificationShown] = useState(false);
+
+  // Reminder modal state
+  const [showCreateReminderModal, setShowCreateReminderModal] = useState(false);
+  const [showReminderListModal, setShowReminderListModal] = useState(false);
+
+  // Handle date click
+  const handleDateClick = (dayInfo: any) => {
+    if (dayInfo.date) {
+      setSelectedDate(dayInfo.date);
+      setSelectedDayData(dayInfo.dayData || null);
+      onOpen();
+    }
+  };
+
+  // Handle reminder modal actions
+  const handleCreateReminder = () => {
+    setShowCreateReminderModal(true);
+  };
+
+  const handleViewReminders = () => {
+    setShowReminderListModal(true);
+  };
+
+  const handleCreateReminderClose = () => {
+    setShowCreateReminderModal(false);
+  };
+
+  const handleReminderListClose = () => {
+    setShowReminderListModal(false);
+  };
 
   // Provide safe fallback values if stats is null
   const totalPnl = stats?.total_pnl ?? 0;
@@ -222,9 +567,10 @@ const Calendarbody = () => {
   const avgLoss = stats?.average_loss ?? 0;
   const tradingDays = stats?.trading_days ?? stats?.tradingDays ?? 0;
 
-  // Toast for missing data 
+  // Toast for missing data - only show once per session
   useEffect(() => {
-    if (!loading && (!weeklyData || weeklyData.length === 0)) {
+    if (!loading && (!weeklyData || weeklyData.length === 0) && !noDataNotificationShown) {
+      setNoDataNotificationShown(true);
       toast({
         title: "No data for this month.",
         description: "You have no journal entries or trading data for the selected period.",
@@ -234,9 +580,16 @@ const Calendarbody = () => {
         position: "top-right",
       });
     }
-  }, [loading, weeklyData, toast]);
+  }, [loading, weeklyData, toast, noDataNotificationShown]);
 
-  {/* MANUAL REMINDERS */}
+  // Reset the notification flag when data becomes available
+  useEffect(() => {
+    if (weeklyData && weeklyData.length > 0) {
+      setNoDataNotificationShown(false);
+    }
+  }, [weeklyData]);
+
+                                      {/* MANUAL REMINDERS */}
   useEffect(() => {
     const now = new Date();
     const target = new Date();
@@ -259,9 +612,10 @@ const Calendarbody = () => {
     return () => clearTimeout(timeout);
   }, [toast]);
 
-  {/* SMART REMINDERS */}
+                                {/* SMART REMINDERS */}
   // Smart reminder: Remind to log trades 15 minutes after market close (4:15 PM weekdays)
   useEffect(() => {
+    if (!settings.smartReminders || !settings.tradeReminders) return;
     const now = new Date();
     const day = now.getDay(); // 0 = Sunday, 6 = Saturday
 
@@ -293,15 +647,27 @@ const Calendarbody = () => {
     }, target.getTime() - now.getTime());
 
     return () => clearTimeout(timeout);
-  }, [toast]);
+  }, [toast, settings.smartReminders, settings.tradeReminders]);
 
   // Smart Reminder: Remind to review open positions every morning before market opens (9:15 AM weekdays)
   useEffect(() => {
+    if (!settings.smartReminders || !settings.marketOpenReminders) return;
+    const today = new Date().toISOString().slice(0, 10);
+
+    // Find open positions: entries with no exit_date or exit_price
+    const openPositions =
+      weeklyData?.flatMap(week =>
+        week.days?.filter((day: { entry_date: string; exit_date: string; exit_price: any; }) =>
+          String(day.entry_date).slice(0, 10) <= today &&
+          (!day.exit_date || !day.exit_price || day.exit_date === "")
+        ) || []
+      ) || [];
+
     const now = new Date();
     const day = now.getDay(); // 0 = Sunday, 6 = Saturday
 
-    // Only schedule on weekdays (Monday to Friday)
-    if (day === 0 || day === 6) return;
+    // Only schedule on weekdays and if there are open positions
+    if (day === 0 || day === 6 || openPositions.length === 0) return;
 
     const target = new Date();
     target.setHours(9, 15, 0, 0); // 9:15 AM today
@@ -315,11 +681,10 @@ const Calendarbody = () => {
       if (target.getDay() === 0) target.setDate(target.getDate() + 1);
       target.setHours(9, 15, 0, 0);
     }
-
     const timeout = setTimeout(() => {
       toast({
         title: "Pre-market Reminder",
-        description: "Review your open positions before the market opens!",
+        description: `You have ${openPositions.length} open position(s). Review them before the market opens!`,
         status: "info",
         duration: 12000,
         isClosable: true,
@@ -328,7 +693,137 @@ const Calendarbody = () => {
     }, target.getTime() - now.getTime());
 
     return () => clearTimeout(timeout);
-  }, [toast]);
+  }, [toast, weeklyData, settings.smartReminders, settings.marketOpenReminders]);
+
+  // Smart Reminders -> Reminder to review watchlist (Time: 8:30 AM)
+  useEffect(() => {
+    if (!settings.smartReminders || !settings.marketOpenReminders) return;
+    const now = new Date();
+    const day = now.getDay(); // 0 = Sunday, 6 = Saturday
+
+    // Only schedule on weekdays (Monday to Friday)
+    if (day === 0 || day === 6) return;
+
+    const target = new Date();
+    target.setHours(8, 30, 0, 0); // 8:30 AM today
+
+    // If it's already past 8:30 AM, schedule for next weekday
+    if (now > target) {
+      target.setDate(target.getDate() + 1);
+      if (target.getDay() === 6) target.setDate(target.getDate() + 2); // Skip to Monday 
+      if (target.getDay() === 0) target.setDate(target.getDate() + 1); // Skip to Monday
+    target.setHours(8, 30, 0, 0);
+    }
+
+    const timeout = setTimeout(() => {
+      toast({
+        title: "Market opens in 1 hour",
+        description: "Time to review your watchlist.",
+        status: "info",
+        duration: 12000,
+        isClosable: true,
+        position: "top-right",
+      });
+    }, target.getTime() - now.getTime());
+  }, [toast, settings.smartReminders, settings.marketOpenReminders]);
+
+  // Smart reminders -> Reminder to help the user stick to their plan during market hours (11:00 AM)
+  useEffect(() => {
+    if (!settings.smartReminders || !settings.tradeReminders) return;
+    const now = new Date();
+    const day = now.getDay(); // 0 = Sunday, 6 = Saturday
+
+    // Only schedule on weekdays (Monday to Friday)
+    if (day === 0 || day === 6) return;
+
+    const target = new Date();
+    target.setHours(11, 0, 0, 0); // 11:00 AM today
+
+    // If it's already past 11:00 AM, schedule for next weekday
+    if (now > target) {
+      target.setDate(target.getDate() + 1);
+      if (target.getDay() === 6) target.setDate(target.getDate() + 2); // Skip to Monday
+      if (target.getDay() === 0) target.setDate(target.getDate() + 1); // Skip to Monday
+      target.setHours(11, 0, 0, 0);
+    }
+  
+    const timeout = setTimeout(() => {
+      toast({
+        title: "Pre-Market Prep",
+        description: "Have you followed your plan so far? Quick journal entry?",
+        status: "info",
+        duration: 12000,
+        isClosable: true,
+        position: "top-right",
+      });
+    }, target.getTime() - now.getTime());
+  }, [toast, settings.smartReminders, settings.tradeReminders]);
+
+  // Smart Reminders -> Post-Market Journal Prompt to remind to journal thoughts (5:00 PM)
+  useEffect(() => {
+    if (!settings.smartReminders || !settings.tradeReminders) return;
+    const now = new Date();
+    const day = now.getDay(); // 0 = Sunday, 6 = Saturday
+
+    // Only schedule on weekdays (Monday to Friday)
+    if (day === 0 || day === 6) return;
+
+    const target = new Date();
+    target.setHours(17, 0, 0, 0); // 5:00 PM today
+
+    // If it's already past 5:00 PM, schedule for next weekday 
+    if (now > target) {
+      target.setDate(target.getDate() + 1);
+      if (target.getDay() === 6) target.setDate(target.getDate() + 2); // Skip to Monday
+      if (target.getDay() === 0) target.setDate(target.getDate() + 1); // Skip to Monday
+      target.setHours(17, 0, 0, 0);
+    }
+
+    const timeout = setTimeout(() => {
+      toast({
+        title: "Post-Market Journal Prompt",
+        description: "Day closed. Record your trades & thoughts now while they're fresh.",
+        status: "info",
+        duration: 15000,
+        isClosable: true,
+        position: "top-right",
+      });
+    }, target.getTime() - now.getTime());
+  
+    return () => clearTimeout(timeout);
+  }, [toast, settings.smartReminders, settings.tradeReminders]);
+
+  // Smart Reminders -> Weekly Reflection Prompt (Sundays at 10:00 AM)
+  useEffect(() => {
+    if (!settings.smartReminders || !settings.weeklyReports) return;
+    const now = new Date();
+    const day = now.getDay(); // 0 = Sunday, 6 = Saturday
+
+    // Only schedule on Sundays
+    if (day !== 0) return;
+
+    const target = new Date();
+    target.setHours(10, 0, 0, 0); // 10:00 AM today
+
+    // If it's already past 10:00 AM, schedule for next Sunday
+    if (now > target) {
+      target.setDate(target.getDate() + 7); // Next Sunday
+      target.setHours(10, 0, 0, 0);
+    }
+
+    const timeout = setTimeout(() => {
+      toast({
+        title: "Weekly Reflection Prompt",
+        description: "It's Sunday. Time for your weekly review & goal setting.",
+        status: "info",
+        duration: 20000,
+        isClosable: true,
+        position: "top-right",
+      });
+    }, target.getTime() - now.getTime());
+  
+    return () => clearTimeout(timeout);
+  }, [toast, settings.smartReminders, settings.weeklyReports]);
 
   return (
     <Box bg={bg} color={text} p={6} minH="100vh" sx={{ background: bg }}>
@@ -374,11 +869,13 @@ const Calendarbody = () => {
       <CalendarHeader
         currentDate={currentDate}
         onNavigate={navigateMonth}
+        onCreateReminder={handleCreateReminder}
+        onViewReminders={handleViewReminders}
       />
       
       <Grid templateColumns={{ base: "1fr", lg: "repeat(4, 1fr)" }} gap={gridGap}>
         {/* Calendar */}
-        <CalendarGrid days={calendarDays} />
+        <CalendarGrid days={calendarDays} onDateClick={handleDateClick} />
         {/* Weekly Summary */}
         <GridItem>
           <WeeklySummary weeklyData={weeklyData} />
@@ -399,8 +896,8 @@ const Calendarbody = () => {
           <div>Weekly Data Count: {weeklyData?.length || 0}</div>
         </Box>
       )}
-{/* Will need this code else */}
-<Box
+
+      <Box
     mb={6}
     p={4}
     bg={useColorModeValue("blue.50", "blue.900")}
@@ -416,6 +913,25 @@ const Calendarbody = () => {
       <Text>Trading Days: <b>{stats?.trading_days ?? 0}</b></Text>
     </HStack>
   </Box>
+      <DateDetailModal
+        isOpen={isOpen}
+        onClose={onClose}
+        selectedDate={selectedDate}
+        dayData={selectedDayData}
+      />
+
+      {/* Manual Reminder Modals */}
+      <ManualReminderModal
+        isOpen={showCreateReminderModal}
+        onClose={handleCreateReminderClose}
+        editingReminder={null}
+        mode="create"
+      />
+
+      <ReminderListModal
+        isOpen={showReminderListModal}
+        onClose={handleReminderListClose}
+      />
     </Box>
   );
 };

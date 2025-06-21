@@ -37,3 +37,9 @@ node_modules/
 
 # Exclude .vscode folder
 .vscode/
+
+# Exclude the notification tester file 
+src/components/NotificationTester.tsx
+
+# Exclude the GitHub file 
+GitHub 

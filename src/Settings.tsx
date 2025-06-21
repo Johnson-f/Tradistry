@@ -56,6 +56,7 @@ interface NotificationSettings {
   pageUpdates: boolean;
   workspaceDigest: boolean;
   announcements: boolean;
+  smartReminders: boolean; 
 }
 
 interface SupabaseUser {
@@ -129,7 +130,6 @@ const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       }
     }
   };
-
   if (!isLoaded) {
     return (
       <Box minH="100vh" display="flex" alignItems="center" justifyContent="center" bg="gray.100">
@@ -161,17 +161,89 @@ const useTheme = (): ThemeContextType => {
   return context;
 };
 
+const NOTIFICATION_SETTINGS_KEY = 'notifications';
+
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const { theme, handleThemeChange, isDark, cardBg, borderColor, colorMode, toggleColorMode } = useTheme();
   const [activeSection, setActiveSection] = useState<string>('Account');
+  const [sessions, setSessions] = useState<any[]>([]);
   const [language, setLanguage] = useState<string>('English');
-  const [notifications, setNotifications] = useState<NotificationSettings>({
-    activityInWorkspace: true,
-    alwaysSendEmail: false,
-    pageUpdates: true,
-    workspaceDigest: true,
-    announcements: false,
+  const [notifications, setNotifications] = useState<NotificationSettings>(() => {
+    // Load from localStorage or use defaults
+    const saved = localStorage.getItem(NOTIFICATION_SETTINGS_KEY);
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        // Fallback to default if parsing fails 
+      }
+    }
+    return {
+      activityInWorkspace: true,
+      alwaysSendEmail: false,
+      pageUpdates: true,
+      workspaceDigest: true,
+      announcements: false,
+      smartReminders: true,
+    };
   });
+
+  // Persist notification settings to localStorage 
+  useEffect(() => {
+    localStorage.setItem(NOTIFICATION_SETTINGS_KEY, JSON.stringify(notifications));
+  }, [notifications]);
+
+  // Sync alwaysSendEmail with Supabase
+  useEffect(() => {
+    const syncEmailSetting = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+           .from('profiles')
+           .update({ always_send_email: notifications.alwaysSendEmail })
+           .eq('id', user.id);
+      }
+    };
+    // Only sync if alwaysSendEmail changes 
+    syncEmailSetting();
+  }, [notifications.alwaysSendEmail]);
+
+  // load alwaysSendEmail from supabase on mount 
+  useEffect(() => {
+    const fetchEmailSetting = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('always_send_email')
+          .eq('id', user.id)
+          .single();
+          if (!error && data) {
+            setNotifications((prev) => ({
+              ...prev,
+              alwaysSendEmail: !!data.always_send_email,
+            }));
+          }
+      }
+    };
+    fetchEmailSetting();
+    // eslint-disable-next-line
+  }, []);
+
+  // Fetch user sessions from supabase
+  useEffect(() => {
+    const fetchSessions = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data, error } = await supabase
+        .from('user_sessions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('last_active', { ascending: false });
+        if (!error && data) setSessions(data);
+    };
+    if (activeSection === 'Security') fetchSessions();
+  }, [activeSection]);
   
   const settingSections: SettingSection[] = [
     { id: 'Account', icon: User, label: 'Account' },
@@ -187,6 +259,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const [timezone, setTimezone] = useState<string>('(GMT+1:00} Lagos');
   const [userData, setUserData] = useState<SupabaseUser | null>(null);
   const toast = useToast();
+  const currentSessionId = localStorage.getItem('currentSessionId'); // Get current session ID from localStorage (new code)
 
   // Fetch user data from supabase
   useEffect(() => {
@@ -257,6 +330,24 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
+  // Handler for toggling smart reminders 
+  const handleSmartRemindersToggle = () => {
+    setNotifications((prev) => ({
+      ...prev,
+      smartReminders: !prev.smartReminders,
+    }));
+  };
+
+  // Toggle email notifications and persist to Supabase
+  const handleEmailNotificationsToggle = async () => {
+    const newValue = !notifications.alwaysSendEmail;
+    setNotifications((prev) => ({
+      ...prev,
+      alwaysSendEmail: newValue,
+    }));
+    // Supabase sync handled by useEffect above 
+  }
+
   // Render setting context based on active section
   const renderSettingContent = (): JSX.Element => {
     switch (activeSection) {
@@ -322,24 +413,112 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                 </Box>
               </HStack>
             </FormControl>
-            {/*<FormControl>
-              <HStack justify="space-between" align="start">
-                <VStack align="start" spacing={1}>
-                  <FormLabel fontSize="base" fontWeight="medium" mb={8}>
-                    Toggle Dark Mode
-                  </FormLabel>
-                  <Text fontSize="sm" color="gray.500">Switch between light and dark mode</Text>
-                </VStack>
-                <Switch 
-                   isChecked={colorMode === 'dark'}
-                   onChange={toggleColorMode}
-                   colorScheme="blue"
-                   />
-              </HStack>
-            </FormControl>*/}
           </VStack>
         );
-        
+
+        case 'Notifications':
+          return (
+            <VStack spacing={6} align="stretch">
+              <Box>
+                <Text fontSize="xl" mb={2}>Notifications</Text>
+                <Text fontSize="sm" color="gray.500" mb={6}>
+                  Manage your notification preferences.
+                </Text>
+              </Box>
+              {/* ...other notification toggles... */}
+              <FormControl display="flex" alignItems="center" justifyContent="space-between">
+                <Box>
+                  <FormLabel htmlFor="smart-reminders" mb={0} fontWeight="medium">
+                    Smart Reminders 
+                  </FormLabel>
+                  <Text fontSize="sm" color="gray.500">
+                    Get automatic reminders to keep you disciplined with your trading.
+                  </Text>
+                </Box>
+                <Switch
+                   id="smart-reminders"
+                   isChecked={notifications.smartReminders}
+                   onChange={handleSmartRemindersToggle}
+                   colorScheme="blue"
+                   />
+              </FormControl>
+              <FormControl display="flex" alignItems="center" justifyContent="space-between">
+                <Box>
+                  <FormLabel htmlFor="email-reminders" mb={0} fontWeight="medium">
+                    Email Notifications 
+                  </FormLabel>
+                  <Text fontSize="sm" color="gray.500">
+                    Receive smart reminders by Email.
+                  </Text>
+                  </Box>
+                  <Switch 
+                    id="email-reminders"
+                    isChecked={notifications.alwaysSendEmail}
+                    onChange={handleEmailNotificationsToggle}
+                    colorScheme="blue"
+                    />
+              </FormControl>
+            </VStack>
+          );
+
+          case 'Security':
+            return (
+              <VStack spacing={6} align="stretch">
+                <Box>
+                  <Text fontSize="xl" mb={2}>Device Sessions</Text>
+                  <Text fontSize="sm" color="gray.500" mb={6}>
+                    These devices are currently logged in to your account.
+                  </Text>
+                  <Button
+                  colorScheme="red"
+                  size="sm"
+                  mb={4}
+                  onClick={async () => {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user || !currentSessionId) return;
+                    await supabase
+                    .from('user_sessions')
+                    .delete()
+                    .eq('user_id', user.id)
+                    .neq('id', currentSessionId);
+                    setSessions(sessions.filter(s => s.id === currentSessionId));
+                    }}
+                    >
+                      Log out all other devices
+                      </Button>
+                  <Box>
+                    {sessions.length === 0 && (
+                      <Text color="gray.400">No active sessions found.</Text>
+                    )}
+                    {sessions.map((session) => (
+                      <Box key={session.id} p={3} mb={2} borderWidth={1} borderRadius="md">
+                        <Text fontWeight="medium">{session.device_info}</Text>
+                        <Text fontSize="sm" color="gray.500">
+                          IP: {session.ip_address || 'Unknown'}<br />
+                          Logged in: {new Date(session.created_at).toLocaleString()}
+                        </Text>
+                        {/* Show "Log out" only for this session */}
+                        {session.id === currentSessionId && (
+                          <Button
+                          colorScheme="red"
+                          size="xs"
+                          mt={2}
+                          onClick={async () => {
+                            await supabase.from('user_sessions').delete().eq('id', session.id);
+                            setSessions(sessions.filter(s => s.id !== session.id));
+                            // Optionally, also sign out the user
+                            // // await supabase.auth.signOut();
+                            }}
+                            >
+                              Log out from this device
+                              </Button>
+                            )}
+                        </Box>
+                    ))}
+                  </Box>
+                  </Box>
+              </VStack>
+            );
       // Add other cases here..
       default: 
         return (
@@ -349,7 +528,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
         );
     }
   };
-
+  console.log('currentSessionId', currentSessionId, sessions.map(s => s.id));
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="4xl">
       <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(4px)" />
@@ -413,6 +592,5 @@ const SettingsContent: React.FC = () => {
     </Box>
   );
 };
-
 export default Settings;
-export { useTheme, ThemeProvider };
+export { useTheme, ThemeProvider, NOTIFICATION_SETTINGS_KEY };

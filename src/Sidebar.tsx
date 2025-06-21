@@ -23,6 +23,7 @@ import {
   Calendar,
   FileText,
   Settings,
+  Library,
   User,
   LogOut,
   DollarSign,
@@ -248,6 +249,12 @@ export default function Sidebar({ onWidthChange }: SidebarProps) {
             to="/Analytics.jsx"
             collapsed={isModernCollapsed}
           />
+          <ModernSidebarItem
+            icon={Library}
+            label="Notes"
+            to="/Notes.jsx"
+            collapsed={isModernCollapsed}
+            />
           <ModernSidebarItem
             icon={ChartNoAxesColumnIncreasing}
             label="Performance"

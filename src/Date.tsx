@@ -1,8 +1,12 @@
 import { format } from 'date-fns-tz';
 import React, { useState, useEffect } from 'react';
 
-export default function DateTimeDisplay({ timeZone }) {
-    const [dateTime, setDateTime] = useState(new Date());
+interface DateTimeDisplayProps {
+    timeZone: string;
+}
+
+const DateTimeDisplay: React.FC<DateTimeDisplayProps> = ({ timeZone }) => {
+    const [dateTime, setDateTime] = useState<Date>(new Date());
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -12,7 +16,7 @@ export default function DateTimeDisplay({ timeZone }) {
         return () => clearInterval(interval);
     }, []);
 
-    const formatDateTime = (date) => {
+    const formatDateTime = (date: Date): string => {
         return format(date, 'EEE, MMM dd yyyy HH:mm:ss zzz', { timeZone });
     };
 
@@ -23,3 +27,5 @@ export default function DateTimeDisplay({ timeZone }) {
         </div>
     );
 }
+
+export default DateTimeDisplay; 

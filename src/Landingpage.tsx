@@ -1,7 +1,7 @@
 import React from 'react' 
 import { Link } from 'react-router-dom'
 
-export default function Landing() {
+const Landing: React.FC = () => {
     return (
         <div>
             <h1 className='bg-gray-800'>Welcome to Journal Project</h1>
@@ -9,6 +9,8 @@ export default function Landing() {
         </div>
     )
 }
+
+export default Landing;
 
 // This will have heavy customization & styling later on
 

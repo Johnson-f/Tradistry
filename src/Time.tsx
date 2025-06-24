@@ -1,8 +1,8 @@
 import React from 'react';
 import DateTimeDisplay from './Date';
 
-export default function Time() {
-    const timeZones = [
+const Time: React.FC = () => {
+    const timeZones: string[] = [
         'America/New_York',
         'Europe/London',
         'Asia/Tokyo',
@@ -16,3 +16,5 @@ export default function Time() {
         </footer>
     );
 }
+
+export default Time; 

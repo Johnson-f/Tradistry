@@ -43,3 +43,5 @@ src/components/NotificationTester.tsx
 
 # Exclude the GitHub file 
 GitHub 
+
+public/

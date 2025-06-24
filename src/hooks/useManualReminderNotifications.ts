@@ -15,6 +15,8 @@ interface ManualReminderNotification {
 export function useManualReminderNotifications() {
   const toast = useToast();
   const channelRef = useRef<any>(null);
+  const isSubscribedRef = useRef(false);
+  const cleanupRef = useRef(false);
 
   useEffect(() => {
     // Get current user
@@ -25,8 +27,29 @@ export function useManualReminderNotifications() {
 
     // Set up real-time subscription for manual reminder notifications
     const setupNotifications = async () => {
+      // Prevent setup if component is unmounting
+      if (cleanupRef.current) return;
+
       const user = await getCurrentUser();
       if (!user) return;
+
+      // Prevent multiple subscriptions
+      if (isSubscribedRef.current && channelRef.current) {
+        console.log('Manual reminder notifications already subscribed');
+        return;
+      }
+
+      // Clean up any existing channel first
+      if (channelRef.current) {
+        try {
+          await supabase.removeChannel(channelRef.current);
+          console.log('Existing manual reminder channel removed');
+        } catch (error) {
+          console.log('No existing channel to remove or error during removal:', error);
+        }
+        channelRef.current = null;
+        isSubscribedRef.current = false;
+      }
 
       // Create a channel for manual reminder notifications
       channelRef.current = supabase
@@ -38,10 +61,17 @@ export function useManualReminderNotifications() {
           if (notification.user_id === user.id) {
             showNotification(notification);
           }
-        })
-        .subscribe();
+        });
 
-      console.log('Manual reminder notifications subscription set up');
+      try {
+        await channelRef.current.subscribe();
+        isSubscribedRef.current = true;
+        console.log('Manual reminder notifications subscription set up successfully');
+      } catch (error) {
+        console.error('Error setting up manual reminder notifications:', error);
+        isSubscribedRef.current = false;
+        channelRef.current = null;
+      }
     };
 
     // Show notification toast
@@ -84,12 +114,24 @@ export function useManualReminderNotifications() {
 
     // Cleanup on unmount
     return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        console.log('Manual reminder notifications subscription cleaned up');
-      }
+      cleanupRef.current = true;
+      
+      const cleanup = async () => {
+        if (channelRef.current && isSubscribedRef.current) {
+          try {
+            await supabase.removeChannel(channelRef.current);
+            isSubscribedRef.current = false;
+            channelRef.current = null;
+            console.log('Manual reminder notifications subscription cleaned up');
+          } catch (error) {
+            console.error('Error cleaning up manual reminder notifications:', error);
+          }
+        }
+      };
+      
+      cleanup();
     };
-  }, [toast]);
+  }, []); // Empty dependency array to prevent re-subscription
 
   // Function to manually check for notifications (useful for testing)
   const checkNotifications = async () => {

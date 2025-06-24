@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'; 
-import { ApolloClient, InMemoryCache, ApolloProvider } from '@apollo/client' 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Helmet } from 'react-helmet'
 import './index.css'
@@ -16,29 +15,60 @@ import SignUp from './components/SignUp'
 import { supabase } from './supabaseClient'
 import Protectedroute from './components/Protectedroute'
 import ForgotPassword from './components/ForgotPassword'
-import graphqlClient from './apollo/client'
 import { RingLoader } from 'react-spinners'
-import ErrorBoundary from './components/Error'
 import { ChakraProvider } from '@chakra-ui/react'
 import { ThemeProvider } from './Settings'
 import Notes from './Notes'
 import { useSmartNotifications } from './hooks/useSmartNotifications'
 import { useManualReminderNotifications } from './hooks/useManualReminderNotifications'
-import NotificationTester from './components/NotificationTester'
+
+// Type definitions
+interface User {
+  id: string;
+  email?: string;
+  user_metadata?: {
+    full_name?: string;
+  };
+}
+
+interface SessionData {
+  user: User | null;
+}
+
+interface SupabaseResponse<T> {
+  data: T;
+  error: any;
+}
+
+interface UserSession {
+  id: string;
+  user_id: string;
+  device_info: string;
+  ip_address: string;
+}
+
+interface Profile {
+  id: string;
+  full_name: string;
+  email: string;
+  always_send_email: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
 // Initialize React Query Client 
 const queryClient = new QueryClient()
 
 // Function to log user session to Supabase
-async function logUserSession() {
-  const { data: { user } } = await supabase.auth.getUser();
+async function logUserSession(): Promise<void> {
+  const { data: { user } }: SupabaseResponse<{ user: User | null }> = await supabase.auth.getUser();
   if (!user) return;
   const localSessionId = localStorage.getItem('currentSessionId');
   let sessionExists = false;
 
   if (!localSessionId) {
     // Check if session exists in DB
-    const { data, error } = await supabase
+    const { data, error }: SupabaseResponse<UserSession[]> = await supabase
       .from('user_sessions')
       .select('id')
       .eq('id', localSessionId)
@@ -60,7 +90,7 @@ async function logUserSession() {
       console.error('Error fetching IP address:', error);
     }
     
-    const { data, error } = await supabase.from('user_sessions').insert({
+    const { data, error }: SupabaseResponse<UserSession[]> = await supabase.from('user_sessions').insert({
       user_id: user.id,
       device_info: deviceInfo,
       ip_address,
@@ -77,13 +107,13 @@ async function logUserSession() {
 }
 
 // Function to ensure user profile exists
-async function ensureUserProfile() {
-  const { data: { user } } = await supabase.auth.getUser();
+async function ensureUserProfile(): Promise<void> {
+  const { data: { user } }: SupabaseResponse<{ user: User | null }> = await supabase.auth.getUser();
   if (!user) return;
 
   try {
     // Check if profile exists
-    const { error: fetchError } = await supabase
+    const { error: fetchError }: SupabaseResponse<Profile> = await supabase
       .from('profiles')
       .select('id')
       .eq('id', user.id)
@@ -93,12 +123,12 @@ async function ensureUserProfile() {
     if (fetchError && fetchError.code === 'PGRST116') {
       console.log('Creating user profile for:', user.id);
       
-      const { error: createError } = await supabase
+      const { error: createError }: SupabaseResponse<Profile> = await supabase
         .from('profiles')
         .insert({
           id: user.id,
           full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
-          email: user.email,
+          email: user.email || '',
           always_send_email: false,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
@@ -115,10 +145,10 @@ async function ensureUserProfile() {
   }
 }
 
-const App = () => {
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [sidebarWidth, setSidebarWidth] = useState(256) // Default expanded width
+const App: React.FC = () => {
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState<boolean>(true)
+  const [sidebarWidth, setSidebarWidth] = useState<number>(256) // Default expanded width
 
   // Use smart notifications
   useSmartNotifications();
@@ -127,11 +157,11 @@ const App = () => {
   useManualReminderNotifications();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(({ data }: { data: SessionData }) => {
       setUser(data.session?.user ?? null)
       setLoading(false)
     })
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((_event: string, session: any) => {
       setUser(session?.user ?? null)
     })
     return () => {
@@ -154,7 +184,6 @@ const App = () => {
   }
   return (
     <QueryClientProvider client={queryClient}>
-    <ApolloProvider client={graphqlClient}>
     {/* Helmet for SEO */}
     <Helmet>
       <title>Journal Project</title>
@@ -170,7 +199,6 @@ const App = () => {
             <Route path="/Login" element={<Login />} />
             <Route path="/SignUp" element={<SignUp />} />
             <Route path="/ForgotPassword" element={<ForgotPassword />} />
-            <Route path="/NotificationTester" element={<NotificationTester />} />
             <Route path="*" element={<Navigate to="/" />} />
           </>
         ) : (
@@ -189,9 +217,8 @@ const App = () => {
                   <Routes>
                     <Route path="/Dashboard" element={<Dashboard />} />
                     <Route path="/Journal.jsx" element={
-                      <ErrorBoundary>
+
                       <Journal />
-                      </ErrorBoundary>
                       } 
                       />
                     <Route path="/Analytics" element={<Analytics />} />
@@ -199,7 +226,6 @@ const App = () => {
                     <Route path="/Notes" element={<Notes />} />
                     <Route path="/Settings" element={<Settings />} />
                     <Route path="/Login" element={<Login />} />
-                    <Route path="/NotificationTester" element={<NotificationTester />} />
                     <Route path="*" element = {<Navigate to="/Dashboard" />} />
                   </Routes>
                 </main>
@@ -212,11 +238,8 @@ const App = () => {
     </Router>
     </ThemeProvider>
     </ChakraProvider>
-    </ApolloProvider>
     </QueryClientProvider>
   )
 }
 
 export default App 
-
- {/* bg-gradient-to-br from-gray-900 via-gray-900 to-black p-4 */}

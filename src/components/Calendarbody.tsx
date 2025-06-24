@@ -22,6 +22,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle, XCircle, Minus, TrendingUp, TrendingDown, DollarSign, Calendar, Clock } from 'lucide-react';
 import { useNotificationSettings } from '../hooks/useNotificationSettings';
 import { useCalendarData } from '../hooks/useCalendarData';
+import { useJournalEntries } from '../hook2/Journalentries';
+import { useJournalOptions } from '../hook2/Journaloptions';
+import useJournalFilter from '../hook2/Journalfilter';
+import useOptionsFilter from '../hook2/Optionsfilter';
+import useLocalStorage from '../hook2/Localstorage';
 import { ManualReminderModal } from './ManualReminderModal';
 import { ReminderListModal } from './ReminderListModal';
 

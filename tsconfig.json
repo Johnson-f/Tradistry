@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     /* Language and Environment */
-    "target": "es6",                                  /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */
-    "module": "commonjs",                             /* Specify what module code is generated. */
+    "target": "ES2020",                               /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */
+    "module": "ESNext",                               /* Specify what module code is generated. */
     "jsx": "react",                                   /* Specify what JSX code is generated. */
     "resolveJsonModule": true,                        /* Enable importing .json files. */
     "esModuleInterop": true,                          /* Emit additional JavaScript to ease support for importing CommonJS modules. */
@@ -16,7 +16,12 @@
     "isolatedModules": true,                          /* Ensure that each file can be safely transpiled without relying on other imports. */
 
     /* Completeness */
-    "noEmit": true                                    /* Disable emitting files from a compilation. */
+    "noEmit": true,                                   /* Disable emitting files from a compilation. */
+    
+    /* Module Resolution */
+    "moduleResolution": "bundler",                    /* Specify module resolution strategy. */
+    "allowImportingTsExtensions": true,               /* Allow imports to include TypeScript file extensions. */
+    "types": ["vite/client"]                          /* Include Vite client types for import.meta.env */
   },
   "include": ["src/**/*", "server/Serverless files/Calendarfetch2.js", "server/Serverless files/Calendarfetch1.js"],                            /* Include all files in the src folder. */
   "exclude": ["node_modules"]                         /* Exclude the node_modules folder. */

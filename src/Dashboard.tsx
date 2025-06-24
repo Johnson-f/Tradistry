@@ -1,10 +1,8 @@
 import React from 'react'
 
-
-const Dashboard = () => {
+const Dashboard: React.FC = () => {
   return (
     <>
-
 
 {/* Dashboard Header */}
 <div className="flex items-center justify-between dark:bg-gray-700 p-6 rounded shadow-xl w-full">
@@ -53,4 +51,4 @@ const Dashboard = () => {
   )
 }
 
-export default Dashboard
+export default Dashboard 

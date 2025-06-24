@@ -37,6 +37,8 @@ import {
   LayoutDashboard,
   Plus,
   Search,
+  Link as LinkIcon,
+  Wallet,
 } from "lucide-react";
 import SettingsModal, { ThemeProvider } from "./Settings"; // New code 
 
@@ -254,7 +256,7 @@ export default function Sidebar({ onWidthChange }: SidebarProps) {
             label="Notes"
             to="/Notes.jsx"
             collapsed={isModernCollapsed}
-            />
+          />
           <ModernSidebarItem
             icon={ChartNoAxesColumnIncreasing}
             label="Performance"
@@ -267,6 +269,15 @@ export default function Sidebar({ onWidthChange }: SidebarProps) {
             to="/Mindset.jsx"
             collapsed={isModernCollapsed}
           />
+          <ModernSidebarItem
+            icon={Wallet}
+            label="Broker Connections"
+            collapsed={isModernCollapsed}
+          />
+        </div>
+
+        <div className="space-y-1">
+          {/* Broker Integration section removed */}
         </div>
       </nav>
 

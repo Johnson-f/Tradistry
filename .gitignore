@@ -7,13 +7,15 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
+# Build output
 dist
 dist-ssr
+
+# Local environment files
 *.local
 
 # Editor directories and files
-.vscode/*
+.vscode/
 !.vscode/extensions.json
 .idea
 .DS_Store
@@ -23,25 +25,17 @@ dist-ssr
 *.sln
 *.sw?
 
-# Exclude server folder 
+# Project folders to exclude
 server/
-
-# Exclude supabase folder
 supabase/
-
-# Exclude .history folder
 .history/
 
-# Exclude node_modules folder
+# Exclude specific files
+src/components/NotificationTester.tsx
+GitHub
+
+# Dependency directories
 node_modules/
 
-# Exclude .vscode folder
-.vscode/
-
-# Exclude the notification tester file 
-src/components/NotificationTester.tsx
-
-# Exclude the GitHub file 
-GitHub 
-
+# Exclude the public folder (if you want to ignore it; remove if you want to keep it in git)
 public/

@@ -27,6 +27,7 @@ import {
 } from '@chakra-ui/react';
 import { Calendar, Clock, Bell, Mail, Repeat, AlertTriangle } from 'lucide-react';
 import { useManualReminders, CreateReminderData, ManualReminder } from '../hooks/useManualReminders';
+import { logger } from '../services/logger';
 
 interface ManualReminderModalProps {
   isOpen: boolean;
@@ -144,7 +145,7 @@ export const ManualReminderModal: React.FC<ManualReminderModalProps> = ({
       }
       onClose();
     } catch (error) {
-      console.error('Error saving reminder:', error);
+      logger.error('Error saving reminder', error, { mode, reminderId: editingReminder?.id, component: 'ManualReminderModal' });
     }
   };
 

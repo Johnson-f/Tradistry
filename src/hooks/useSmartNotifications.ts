@@ -4,6 +4,7 @@ import { useToast } from '@chakra-ui/react';
 import { notificationService } from '../services/NotificationService';
 import { supabase } from '../supabaseClient';
 import { useNotificationSettings } from './useNotificationSettings';
+import { logger } from '../services/logger';
 
 export function useSmartNotifications() {
   const toast = useToast();
@@ -15,7 +16,7 @@ export function useSmartNotifications() {
       try {
         // Check if smart reminders are enabled
         if (!settings.smartReminders) {
-          console.log('Smart reminders disabled by user');
+          logger.debug('Smart reminders disabled by user', { hook: 'useSmartNotifications' });
           return;
         }
 
@@ -23,18 +24,18 @@ export function useSmartNotifications() {
         const notifications = await notificationService.getUserNotifications();
         
         if (notifications.length === 0) {
-          console.log('No eligible notifications found');
+          logger.debug('No eligible notifications found', { hook: 'useSmartNotifications' });
           return;
         }
 
-        console.log(`Found ${notifications.length} eligible notifications`);
+        logger.info(`Found ${notifications.length} eligible notifications`, { count: notifications.length, hook: 'useSmartNotifications' });
 
         // Process each notification
         for (const notification of notifications) {
           // Check if user should receive this notification
           const shouldSend = await notificationService.shouldSendNotification(notification.id);
           if (!shouldSend) {
-            console.log(`Skipping notification ${notification.id} - user not eligible`);
+            logger.debug(`Skipping notification ${notification.id} - user not eligible`, { notificationId: notification.id, hook: 'useSmartNotifications' });
             continue;
           }
 
@@ -62,7 +63,7 @@ export function useSmartNotifications() {
           }
 
           if (!shouldShowNotification) {
-            console.log(`Skipping notification ${notification.id} - type disabled by user`);
+            logger.debug(`Skipping notification ${notification.id} - type disabled by user`, { notificationId: notification.id, notificationType: notification.notification_type, hook: 'useSmartNotifications' });
             continue;
           }
 
@@ -102,7 +103,7 @@ export function useSmartNotifications() {
             // Mark notification as sent
             await notificationService.markNotificationSent(notification.id, 'toast');
             
-            console.log(`Showed toast notification: ${notification.title}`);
+            logger.info(`Showed toast notification: ${notification.title}`, { notificationId: notification.id, title: notification.title, hook: 'useSmartNotifications' });
           }
 
           // Send email if user has email notifications enabled
@@ -120,13 +121,13 @@ export function useSmartNotifications() {
               
               if (emailSent) {
                 await notificationService.markNotificationSent(notification.id, 'email');
-                console.log(`Sent email notification: ${notification.email_subject}`);
+                logger.info(`Sent email notification: ${notification.email_subject}`, { notificationId: notification.id, emailSubject: notification.email_subject, hook: 'useSmartNotifications' });
               }
             }
           }
         }
       } catch (error) {
-        console.error('Error processing notifications:', error);
+        logger.error('Error processing notifications', error, { hook: 'useSmartNotifications' });
       }
     };
 
@@ -173,7 +174,7 @@ export function useSmartNotifications() {
       }
 
       if (!shouldShowNotification) {
-        console.log(`Skipping manual notification - type ${type} disabled by user`);
+        logger.debug(`Skipping manual notification - type ${type} disabled by user`, { notificationType: type, hook: 'useSmartNotifications' });
         return;
       }
       
@@ -277,7 +278,7 @@ export function useSmartNotifications() {
             }
           }
         } catch (error) {
-          console.error('Error manually checking notifications:', error);
+          logger.error('Error manually checking notifications', error, { hook: 'useSmartNotifications' });
         }
       };
       checkNotifications();

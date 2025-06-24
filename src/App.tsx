@@ -21,6 +21,7 @@ import { ThemeProvider } from './Settings'
 import Notes from './Notes'
 import { useSmartNotifications } from './hooks/useSmartNotifications'
 import { useManualReminderNotifications } from './hooks/useManualReminderNotifications'
+import { logger } from './services/logger'
 
 // Type definitions
 interface User {
@@ -87,7 +88,7 @@ async function logUserSession(): Promise<void> {
       const json = await res.json();
       ip_address = json.ip;
     } catch (error) {
-      console.error('Error fetching IP address:', error);
+      logger.error('Error fetching IP address', error, { component: 'App' });
     }
     
     const { data, error }: SupabaseResponse<UserSession[]> = await supabase.from('user_sessions').insert({
@@ -97,7 +98,7 @@ async function logUserSession(): Promise<void> {
     }).select('id').single();
     
     if (error) {
-      console.error('Error inserting session:', error.message);
+      logger.error('Error inserting session', error, { component: 'App' });
     }
     
     if (data && data[0]?.id) {
@@ -121,7 +122,7 @@ async function ensureUserProfile(): Promise<void> {
 
     // If profile doesn't exist, create one
     if (fetchError && fetchError.code === 'PGRST116') {
-      console.log('Creating user profile for:', user.id);
+      logger.info('Creating user profile for', { userId: user.id, component: 'App' });
       
       const { error: createError }: SupabaseResponse<Profile> = await supabase
         .from('profiles')
@@ -135,13 +136,13 @@ async function ensureUserProfile(): Promise<void> {
         });
 
       if (createError) {
-        console.error('Error creating user profile:', createError);
+        logger.error('Error creating user profile', createError, { userId: user.id, component: 'App' });
       } else {
-        console.log('User profile created successfully');
+        logger.info('User profile created successfully', { userId: user.id, component: 'App' });
       }
     }
   } catch (error) {
-    console.error('Error ensuring user profile:', error);
+    logger.error('Error ensuring user profile', error, { component: 'App' });
   }
 }
 

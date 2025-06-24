@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@chakra-ui/react';
 import { supabase } from '../supabaseClient';
+import { logger } from '../services/logger';
 
 export interface NotificationSettings {
   smartReminders: boolean;
@@ -43,7 +44,7 @@ export function useNotificationSettings() {
         try {
           localData = JSON.parse(localSettings);
         } catch (error) {
-          console.error('Error parsing local notification settings:', error);
+          logger.error('Error parsing local notification settings', error, { hook: 'useNotificationSettings' });
         }
       }
 
@@ -65,7 +66,7 @@ export function useNotificationSettings() {
       const mergedSettings = { ...DEFAULT_SETTINGS, ...localData };
       setSettings(mergedSettings);
     } catch (error) {
-      console.error('Error loading notification settings:', error);
+      logger.error('Error loading notification settings', error, { hook: 'useNotificationSettings' });
       setSettings(DEFAULT_SETTINGS);
     } finally {
       setLoading(false);
@@ -100,7 +101,7 @@ export function useNotificationSettings() {
         isClosable: true,
       });
     } catch (error) {
-      console.error('Error saving notification settings:', error);
+      logger.error('Error saving notification settings', error, { hook: 'useNotificationSettings' });
       toast({
         title: 'Error',
         description: 'Failed to save notification settings. Please try again.',

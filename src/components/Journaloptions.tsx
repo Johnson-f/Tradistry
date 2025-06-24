@@ -35,6 +35,7 @@ import {
   flexRender,
   type ColumnDef,
 } from "@tanstack/react-table";
+import { logger } from '../services/logger';
 
 interface OptionPayload {
   id?: string; // Optional for new entries
@@ -99,9 +100,9 @@ const MotionTr = motion(Tr);
       try {
         setIsLoading(true);
         const result = await selectOptions();
-        console.log("Fetched options:", result);
+        logger.debug("Fetched options", { result, component: 'Journaloptions' });
       } catch (err) {
-        console.error("Error fetching options:", err);
+        logger.error("Error fetching options", err, { component: 'Journaloptions' });
         toast.error("Failed to fetch options. Please try again.");
       } finally {
         setIsLoading(false);
@@ -202,7 +203,7 @@ const MotionTr = motion(Tr);
       toast.error("Option type must be 4 characters or less.");
     }
 
-    console.log("Submitting payload:", formData); // Debugging payload
+    logger.debug("Submitting payload", { formData, component: 'Journaloptions' });
 
     try {
       setIsLoading(true);
@@ -244,7 +245,7 @@ const MotionTr = motion(Tr);
       resetForm();
       onClose();
     } catch (err) {
-      console.error("Error submitting form:", err);
+      logger.error("Error submitting form", err, { component: 'Journaloptions', formData });
       const errorMessage = selectedOptionId
         ? "Failed to update option. Please try again."
         : "Failed to add option. Please try again.";
@@ -267,7 +268,7 @@ const MotionTr = motion(Tr);
       await selectOptions(); // Refresh the list
       toast.success("Option deleted successfully!");
     } catch (err) {
-      console.error("Error deleting option:", err);
+      logger.error("Error deleting option", err, { optionId, component: 'Journaloptions' });
       toast.error("Error deleting option. Please try again later.");
     } finally {
       setIsLoading(false);

@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import { useManualReminders, ManualReminder } from '../hooks/useManualReminders';
 import { ManualReminderModal } from './ManualReminderModal';
+import { logger } from '../services/logger';
 
 interface ReminderListModalProps {
   isOpen: boolean;
@@ -73,7 +74,7 @@ export const ReminderListModal: React.FC<ReminderListModalProps> = ({
     try {
       await cancelReminder(reminderId);
     } catch (error) {
-      console.error('Error cancelling reminder:', error);
+      logger.error('Error cancelling reminder', error, { reminderId, component: 'ReminderListModal' });
     }
   };
 
@@ -82,7 +83,7 @@ export const ReminderListModal: React.FC<ReminderListModalProps> = ({
     try {
       await completeReminder(reminderId);
     } catch (error) {
-      console.error('Error completing reminder:', error);
+      logger.error('Error completing reminder', error, { reminderId, component: 'ReminderListModal' });
     }
   };
 
@@ -91,7 +92,7 @@ export const ReminderListModal: React.FC<ReminderListModalProps> = ({
     try {
       await deleteReminder(reminderId);
     } catch (error) {
-      console.error('Error deleting reminder:', error);
+      logger.error('Error deleting reminder', error, { reminderId, component: 'ReminderListModal' });
     }
   };
 

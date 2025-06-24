@@ -2,8 +2,9 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { Box, Text, Heading, Flex, useColorModeValue } from "@chakra-ui/react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { logger } from '../services/logger';
 
-console.log("JournalFilter component rendered"); 
+logger.debug("JournalFilter component rendered", { component: 'JournalFilter' });
 
 interface JournalFilterProps {
     filter: string;
@@ -83,16 +84,16 @@ const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFi
         }
     }
         if (error) {
-            console.error("Commission fetch error:", error);
+            logger.error("Commission fetch error", error, { timeFilter, viewMode, component: 'JournalFilter' });
         } else {
-            console.log("Commission data fetched:", data);
+            logger.debug("Commission data fetched", { data, timeFilter, viewMode, component: 'JournalFilter' });
             setCommission(data);
         }
     };
 
     // Fetch total trades logic 
     const fetchTotalTrades = async () => {
-        console.log("Fetching total trades for time filter:", timeFilter);
+        logger.debug("Fetching total trades for time filter", { timeFilter, component: 'JournalFilter' });
         let data, error;
         switch (timeFilter) {
             case "7days":
@@ -111,9 +112,9 @@ const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFi
                 ({ data, error } = await supabase.rpc("total_trades"));
         }
         if (error) {
-            console.error("Total trades fetch error:", error);
+            logger.error("Total trades fetch error", error, { timeFilter, component: 'JournalFilter' });
         } else {
-            console.log("Total trades data fetched:", data);
+            logger.debug("Total trades data fetched", { data, timeFilter, component: 'JournalFilter' });
             setTotalTrades(data);
         }
     };
@@ -138,7 +139,7 @@ const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFi
                 ({ data, error } = await supabase.rpc("winrate_all"));
         }
         if (error) {
-            console.error("Win rate fetch error:", error);
+            logger.error("Win rate fetch error", error, { timeFilter, component: 'JournalFilter' });
         } else {
             setWinRate(data);
         }
@@ -164,7 +165,7 @@ const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFi
                 ({ data, error } = await supabase.rpc("average_gain"));
         }
         if (error) {
-            console.error("Average gain fetch error:", error);
+            logger.error("Average gain fetch error", error, { timeFilter, component: 'JournalFilter' });
         } else {
             setAverageGain(data);
         }
@@ -190,7 +191,7 @@ const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFi
                 ({ data, error } = await supabase.rpc("average_loss"));
         }
         if (error) {
-            console.error("Average loss fetch error:", error);
+            logger.error("Average loss fetch error", error, { timeFilter, component: 'JournalFilter' });
         } else {
             setAverageLoss(data);
         }
@@ -216,10 +217,10 @@ const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFi
                 ({ data, error } = await supabase.rpc("net_prof"));
         }
         if (error) {
-            console.error("Net profit fetch error:", error);
+            logger.error("Net profit fetch error", error, { timeFilter, component: 'JournalFilter' });
             setNetProfitData([]); // Set empty array on error
         } else {
-            console.log("Net profit data fetched:", data);
+            logger.debug("Net profit data fetched", { data, timeFilter, component: 'JournalFilter' });
             // Ensure data is properly formatted
             const formattedData = (data || []).map((item: any) => ({
                 date: item.date || item.trade_date || item.created_at || 'Unknown',
@@ -249,7 +250,7 @@ const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFi
                 ({ data, error } = await supabase.rpc("averagetrade_value"));
         }
         if (error) {
-            console.error("Average trade value fetch error:", error);
+            logger.error("Average trade value fetch error", error, { timeFilter, component: 'JournalFilter' });
         } else {
             setAverageTradeValue(data);
         }
@@ -275,7 +276,7 @@ const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFi
                 ({ data, error } = await supabase.rpc("avghold_wins"));
         }
         if (error) {
-            console.error("Average hold win fetch error:", error);
+            logger.error("Average hold win fetch error", error, { timeFilter, component: 'JournalFilter' });
         } else {
             setAverageHoldWin(data);
         }
@@ -301,7 +302,7 @@ const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFi
                 ({ data, error } = await supabase.rpc("avghold_loss"));
         }
         if (error) {
-            console.error("Average hold loss fetch error:", error);
+            logger.error("Average hold loss fetch error", error, { timeFilter, component: 'JournalFilter' });
         } else {
             setAverageHoldLoss(data);
         }
@@ -323,7 +324,7 @@ const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFi
                 fetchNetProfitData()
             ]);
         } catch (error) {
-            console.error("Error fetching data:", error);
+            logger.error("Error fetching data", error, { component: 'JournalFilter' });
         } finally {
             setLoading(false);
         }

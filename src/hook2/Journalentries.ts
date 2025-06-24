@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, useRef } from "react";
 import { supabase } from "../supabaseClient";
+import { logger } from '../services/logger';
 
 // Define types for journal entry payload
 interface JournalEntryPayload {
@@ -48,7 +49,7 @@ export function useJournalEntries() {
   const insertJournalEntry = useCallback(async (entryData: JournalEntryPayload) => {
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     if (sessionError) {
-      console.error("Failed to get session:", sessionError);
+      logger.error("Failed to get session", sessionError, { hook: 'useJournalEntries' });
       throw sessionError;
     }
     const userId = sessionData?.session?.user?.id;
@@ -71,13 +72,13 @@ export function useJournalEntries() {
         p_exit_date: entryData.p_exit_date || null,
     };
 
-    console.log("Payload:", p_payload); // Debugging: Log payload
+    logger.debug("Payload", { p_payload, hook: 'useJournalEntries' });
     const { data, error } = await supabase.rpc("insert_entry", { p_payload });
     if (error) {
-      console.error("Insert failed:", error);
+      logger.error("Insert failed", error, { hook: 'useJournalEntries' });
       throw new Error(`Insert failed: ${error.message}`);
     }
-    console.log("Insert successful:", data);
+    logger.info("Insert successful", { data, hook: 'useJournalEntries' });
     return data;
   }, []);
 
@@ -101,13 +102,13 @@ export function useJournalEntries() {
         p_exit_date: entryData.p_exit_date || null,
     };
 
-    console.log("Payload:", p_payload); // Debugging: Log payload
+    logger.debug("Payload", { p_payload, hook: 'useJournalEntries' });
     const { data, error } = await supabase.rpc("update_entry", { p_entry_id, p_payload });
     if (error) {
-      console.error("Update failed:", error);
+      logger.error("Update failed", error, { hook: 'useJournalEntries' });
       throw error;
     }
-    console.log("Update successful:", data);
+    logger.info("Update successful", { data, hook: 'useJournalEntries' });
     return data;
   }, []);
 
@@ -123,26 +124,26 @@ export function useJournalEntries() {
     });
 
     if (error) {
-      console.error("Delete failed:", error);
+      logger.error("Delete failed", error, { hook: 'useJournalEntries' });
       throw error;
     }
-    console.log("Delete successful:", data);
+    logger.info("Delete successful", { data, hook: 'useJournalEntries' });
     return data;
   }, []);
 
   // Select journal entry
   const selectJournalEntry = useCallback(async () => {
     try {
-      console.log("Fetching entries for the authenticated user...");
+      logger.info("Fetching entries for the authenticated user", { hook: 'useJournalEntries' });
       const { data, error } = await supabase.rpc("select_entry");
       if (error) {
-        console.error("Select failed:", error);
+        logger.error("Select failed", error, { hook: 'useJournalEntries' });
         throw error;
       }
-      console.log("Select successful:", data);
+      logger.info("Select successful", { data, hook: 'useJournalEntries' });
       return data;
     } catch (err) {
-      console.error("Error selecting journal entry:", err);
+      logger.error("Error selecting journal entry", err, { hook: 'useJournalEntries' });
       throw err;
     }
   }, []);
@@ -159,19 +160,19 @@ export function useJournalEntries() {
             "postgres_changes",
             { event: "*", schema: "public", table: "journal_entries" },
             (payload) => {
-              console.log("Realtime event received:", payload);
+              logger.info("Realtime event received", { payload, hook: 'useJournalEntries' });
               setEvents((prevEvents) => [...prevEvents, payload]);
             }
           )
           .subscribe((status, err) => {
-            console.log(`Realtime subscription status: ${status}`);
+            logger.info(`Realtime subscription status: ${status}`, { status, hook: 'useJournalEntries' });
             setConnectionStatus(status);
             if (status === "CHANNEL_ERROR") {
               const errorMessage = err?.message || "Unknown channel error";
-              console.error("Channel error:", err);
+              logger.error("Channel error", err, { hook: 'useJournalEntries' });
               setError(new Error(errorMessage));
             } else if (status === "TIMED_OUT") {
-              console.error("Connection timed out. Retrying...");
+              logger.error("Connection timed out. Retrying...", { hook: 'useJournalEntries' });
               if (channelRef.current) {
                 supabase.removeChannel(channelRef.current);
                 channelRef.current = null;
@@ -179,7 +180,7 @@ export function useJournalEntries() {
                 setTimeout(setupSubscription, retryDelay);
               }
             } else if (status === "CLOSED") {
-                console.log("Channel closed");
+                logger.info("Channel closed", { hook: 'useJournalEntries' });
               setConnectionStatus("DISCONNECTED");
             }
           });
@@ -189,7 +190,7 @@ export function useJournalEntries() {
 
     return () => {
       if (channelRef.current) {
-        console.log("Cleaning up subscription");
+        logger.info("Cleaning up subscription", { hook: 'useJournalEntries' });
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }

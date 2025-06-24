@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useToast } from '@chakra-ui/react';
 import { supabase } from '../supabaseClient';
+import { logger } from '../services/logger';
 
 interface ManualReminderNotification {
   user_id: string;
@@ -35,7 +36,7 @@ export function useManualReminderNotifications() {
 
       // Prevent multiple subscriptions
       if (isSubscribedRef.current && channelRef.current) {
-        console.log('Manual reminder notifications already subscribed');
+        logger.debug('Manual reminder notifications already subscribed', { hook: 'useManualReminderNotifications' });
         return;
       }
 
@@ -43,9 +44,9 @@ export function useManualReminderNotifications() {
       if (channelRef.current) {
         try {
           await supabase.removeChannel(channelRef.current);
-          console.log('Existing manual reminder channel removed');
+          logger.debug('Existing manual reminder channel removed', { hook: 'useManualReminderNotifications' });
         } catch (error) {
-          console.log('No existing channel to remove or error during removal:', error);
+          logger.debug('No existing channel to remove or error during removal', { error, hook: 'useManualReminderNotifications' });
         }
         channelRef.current = null;
         isSubscribedRef.current = false;
@@ -66,9 +67,9 @@ export function useManualReminderNotifications() {
       try {
         await channelRef.current.subscribe();
         isSubscribedRef.current = true;
-        console.log('Manual reminder notifications subscription set up successfully');
+        logger.info('Manual reminder notifications subscription set up successfully', { hook: 'useManualReminderNotifications' });
       } catch (error) {
-        console.error('Error setting up manual reminder notifications:', error);
+        logger.error('Error setting up manual reminder notifications', error, { hook: 'useManualReminderNotifications' });
         isSubscribedRef.current = false;
         channelRef.current = null;
       }
@@ -106,7 +107,7 @@ export function useManualReminderNotifications() {
         variant: 'solid',
       });
 
-      console.log('Manual reminder notification shown:', notification);
+      logger.debug('Manual reminder notification shown', { notification, hook: 'useManualReminderNotifications' });
     };
 
     // Set up notifications
@@ -122,9 +123,9 @@ export function useManualReminderNotifications() {
             await supabase.removeChannel(channelRef.current);
             isSubscribedRef.current = false;
             channelRef.current = null;
-            console.log('Manual reminder notifications subscription cleaned up');
+            logger.info('Manual reminder notifications subscription cleaned up', { hook: 'useManualReminderNotifications' });
           } catch (error) {
-            console.error('Error cleaning up manual reminder notifications:', error);
+            logger.error('Error cleaning up manual reminder notifications', error, { hook: 'useManualReminderNotifications' });
           }
         }
       };
@@ -147,12 +148,12 @@ export function useManualReminderNotifications() {
         });
 
       if (error) {
-        console.error('Error checking notifications:', error);
+        logger.error('Error checking notifications', error, { hook: 'useManualReminderNotifications' });
         return;
       }
 
       if (pendingReminders && pendingReminders.length > 0) {
-        console.log(`Found ${pendingReminders.length} pending reminders`);
+        logger.info(`Found ${pendingReminders.length} pending reminders`, { count: pendingReminders.length, hook: 'useManualReminderNotifications' });
         
         // Show notification for the most recent one
         const mostRecent = pendingReminders[0];
@@ -166,7 +167,7 @@ export function useManualReminderNotifications() {
         });
       }
     } catch (error) {
-      console.error('Error checking notifications:', error);
+      logger.error('Error checking notifications', error, { hook: 'useManualReminderNotifications' });
     }
   };
 

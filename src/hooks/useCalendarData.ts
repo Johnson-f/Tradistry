@@ -1,6 +1,7 @@
 // This hook is used to fetch economic events and earnings data for the selected date in the calendar 
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
+import { logger } from '../services/logger';
 
 export const useCalendarData = (selectedDate: Date | null) => {
   const [economicEvents, setEconomicEvents] = useState<any[]>([]);
@@ -18,7 +19,7 @@ export const useCalendarData = (selectedDate: Date | null) => {
       setLoading(true);
       const dateStr = selectedDate.toISOString().slice(0, 10);
 
-      console.log('Fetching calendar data for date:', dateStr);
+      logger.debug('Fetching calendar data for date', { dateStr, hook: 'useCalendarData' });
 
       try {
         // Fetch economic events for the selected date
@@ -28,10 +29,10 @@ export const useCalendarData = (selectedDate: Date | null) => {
           .eq('event_date', dateStr)
           .order('event_time', { ascending: true });
 
-        console.log('Economic events query result:', { economicData, economicError });
+        logger.debug('Economic events query result', { economicData, economicError, hook: 'useCalendarData' });
 
         if (economicError) {
-          console.error('Error fetching economic events:', economicError);
+          logger.error('Error fetching economic events', economicError, { dateStr, hook: 'useCalendarData' });
         } else {
           setEconomicEvents(economicData || []);
         }
@@ -43,15 +44,15 @@ export const useCalendarData = (selectedDate: Date | null) => {
           .eq('earnings_date', dateStr)
           .order('earnings_date', { ascending: true });
 
-        console.log('Earnings data query result:', { earningsData, earningsError });
+        logger.debug('Earnings data query result', { earningsData, earningsError, hook: 'useCalendarData' });
 
         if (earningsError) {
-          console.error('Error fetching earnings data:', earningsError);
+          logger.error('Error fetching earnings data', earningsError, { dateStr, hook: 'useCalendarData' });
         } else {
           setEarningsData(earningsData || []);
         }
       } catch (error) {
-        console.error('Error fetching calendar data:', error);
+        logger.error('Error fetching calendar data', error, { dateStr, hook: 'useCalendarData' });
       } finally {
         setLoading(false);
       }

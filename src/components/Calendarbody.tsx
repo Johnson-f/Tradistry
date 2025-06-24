@@ -29,6 +29,7 @@ import useOptionsFilter from '../hook2/Optionsfilter';
 import useLocalStorage from '../hook2/Localstorage';
 import { ManualReminderModal } from './ManualReminderModal';
 import { ReminderListModal } from './ReminderListModal';
+import { logger } from '../services/logger';
 
 // Utility Functions
 const formatCurrency = (amount: number) => {
@@ -211,7 +212,7 @@ const CalendarGrid = ({ days, onDateClick }: any) => {
 
 // Function to render the weekly summary 
   const WeeklySummary = ({ weeklyData }: any) => {
-    console.log('WeeklyData in component:', weeklyData);
+    logger.debug('WeeklyData in component', { weeklyData, component: 'Calendarbody' });
     const cardBg = useColorModeValue("white", "whiteAlpha.100");
     const borderColor = useColorModeValue("gray.200", "whiteAlpha.300");
     const textColor = useColorModeValue("gray.600", "gray.400");
@@ -220,21 +221,21 @@ const CalendarGrid = ({ days, onDateClick }: any) => {
     const blue = useColorModeValue("blue.500", "blue.300");
 
     // Debug: Log the weekly data structure
-    console.log('WeeklyData in component:', weeklyData);
+    logger.debug('WeeklyData in component', { weeklyData, component: 'Calendarbody' });
 
     return (
         <VStack spacing={4} align="stretch">
       {weeklyData && weeklyData.length > 0 ? (
         weeklyData.map((week: any, index: number) => {
-          console.log('Week data:', week);
+          logger.debug('Week data', { week, component: 'Calendarbody' });
           // Debug: Log each week's structure
-          console.log('Week data:', week);
+          logger.debug('Week data', { week, component: 'Calendarbody' });
           
           // Try different possible property names for P&L
           const netPnl = week.total_pnl ?? week.weekly_pnl ?? week.pnl ?? 0;
           
           // Debug: Log the calculated P&L
-          console.log('Calculated netPnl:', netPnl, 'for week:', week);
+          logger.debug('Calculated netPnl', { netPnl, week, component: 'Calendarbody' });
           
           return (
             <Box 
@@ -284,10 +285,13 @@ const DateDetailModal = ({ isOpen, onClose, selectedDate, dayData }: any) => {
   const { economicEvents, earningsData, loading: calendarDataLoading } = useCalendarData(selectedDate);
 
   // Debug logging
-  console.log('DateDetailModal - selectedDate:', selectedDate);
-  console.log('DateDetailModal - economicEvents:', economicEvents);
-  console.log('DateDetailModal - earningsData:', earningsData);
-  console.log('DateDetailModal - calendarDataLoading:', calendarDataLoading);
+  logger.debug('DateDetailModal data', { 
+    selectedDate, 
+    economicEvents, 
+    earningsData, 
+    calendarDataLoading, 
+    component: 'Calendarbody' 
+  });
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', { 

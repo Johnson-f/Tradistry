@@ -20,6 +20,7 @@ import {
   useToast,
 } from '@chakra-ui/react'
 import { FaGoogle, FaDiscord } from 'react-icons/fa'
+import { logger } from '../services/logger'
 
 // Helper to log user session to supabase 
 async function logUserSession() {
@@ -35,7 +36,7 @@ async function logUserSession() {
         const json = await res.json();
         ip_address = json.ip;
     } catch (error) {
-        console.error('Error fetching IP address:', error);
+        logger.error('Error fetching IP address', error, { component: 'Login' });
     }
 
    await supabase.from('user_sessions').insert({

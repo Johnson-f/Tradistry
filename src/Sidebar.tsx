@@ -41,6 +41,7 @@ import {
   Wallet,
 } from "lucide-react";
 import SettingsModal, { ThemeProvider } from "./Settings"; // New code 
+import { logger } from './services/logger';
 
 // Define props for ModernSidebarItem
 interface ModernSidebarItemProps {
@@ -145,7 +146,7 @@ export default function Sidebar({ onWidthChange }: SidebarProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Form submitted:", formData);
+    logger.info("Form submitted", { formData, component: 'Sidebar' });
     onClose();
   };
 
@@ -160,7 +161,7 @@ export default function Sidebar({ onWidthChange }: SidebarProps) {
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
-      console.error("Error signing out:", error.message);
+      logger.error("Error signing out", error, { component: 'Sidebar' });
     } else {
       navigate("/Login.jsx"); // Redirect to the login page after signing out
     }

@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@chakra-ui/react';
 import { supabase } from '../supabaseClient';
+import { logger } from '../services/logger';
 
 export interface ManualReminder {
   id: number;
@@ -70,7 +71,7 @@ export function useManualReminders() {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch reminders';
       setError(errorMessage);
-      console.error('Error fetching reminders:', err);
+      logger.error('Error fetching reminders', err, { hook: 'useManualReminders' });
     } finally {
       setLoading(false);
     }
@@ -316,7 +317,7 @@ export function useManualReminders() {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch reminder history';
       setError(errorMessage);
-      console.error('Error fetching reminder history:', err);
+      logger.error('Error fetching reminder history', err, { hook: 'useManualReminders' });
       return [];
     } finally {
       setLoading(false);

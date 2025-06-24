@@ -1,4 +1,5 @@
 import { supabase } from '../supabaseClient';
+import { logger } from './logger';
 
 // Types for notifications
 export interface NotificationTemplate {
@@ -54,7 +55,7 @@ class NotificationService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching user notifications:', error);
+      logger.error('Error fetching user notifications', error, { service: 'NotificationService' });
       return [];
     }
   }
@@ -77,7 +78,11 @@ class NotificationService {
       if (error) throw error;
       return data || false;
     } catch (error) {
-      console.error('Error marking notification sent:', error);
+      logger.error('Error marking notification sent', error, { 
+        service: 'NotificationService',
+        notificationId,
+        sentVia 
+      });
       return false;
     }
   }
@@ -100,7 +105,11 @@ class NotificationService {
       if (error) throw error;
       return data || false;
     } catch (error) {
-      console.error('Error updating notification status:', error);
+      logger.error('Error updating notification status', error, { 
+        service: 'NotificationService',
+        notificationId,
+        status 
+      });
       return false;
     }
   }
@@ -119,7 +128,10 @@ class NotificationService {
       if (error) throw error;
       return data?.[0] || null;
     } catch (error) {
-      console.error('Error fetching notification stats:', error);
+      logger.error('Error fetching notification stats', error, { 
+        service: 'NotificationService',
+        daysBack 
+      });
       return null;
     }
   }
@@ -138,7 +150,10 @@ class NotificationService {
       if (error) throw error;
       return data || false;
     } catch (error) {
-      console.error('Error checking notification eligibility:', error);
+      logger.error('Error checking notification eligibility', error, { 
+        service: 'NotificationService',
+        notificationId 
+      });
       return false;
     }
   }
@@ -161,7 +176,7 @@ class NotificationService {
 
       // If profile doesn't exist, create one
       if (error && error.code === 'PGRST116') {
-        console.log('Profile not found, creating new profile for user:', user.id);
+        logger.info('Profile not found, creating new profile for user', { userId: user.id });
         
         const { data: newProfile, error: createError } = await supabase
           .from('profiles')
@@ -177,7 +192,7 @@ class NotificationService {
           .single();
 
         if (createError) {
-          console.error('Error creating profile:', createError);
+          logger.error('Error creating profile', createError, { userId: user.id });
           // Return default values if profile creation fails
           return {
             alwaysSendEmail: false,
@@ -187,7 +202,7 @@ class NotificationService {
 
         data = newProfile;
       } else if (error) {
-        console.error('Error fetching profile:', error);
+        logger.error('Error fetching profile', error, { userId: user.id });
         // Return default values if there's an error
         return {
           alwaysSendEmail: false,
@@ -205,7 +220,9 @@ class NotificationService {
         smartReminders
       };
     } catch (error) {
-      console.error('Error fetching notification preferences:', error);
+      logger.error('Error fetching notification preferences', error, { 
+        service: 'NotificationService'
+      });
       // Return default values if there's an error
       return {
         alwaysSendEmail: false,
@@ -223,7 +240,7 @@ class NotificationService {
     try {
       // This is where you'd integrate with your email service
       // For now, we'll just log it and return true
-      console.log('Sending email notification:', {
+      logger.info('Sending email notification', {
         to: userEmail,
         subject,
         body: body.substring(0, 100) + '...'
@@ -240,7 +257,9 @@ class NotificationService {
 
       return true;
     } catch (error) {
-      console.error('Error sending email notification:', error);
+      logger.error('Error sending email notification', error, { 
+        service: 'NotificationService'
+      });
       return false;
     }
   }
@@ -289,7 +308,9 @@ class NotificationService {
         await this.markNotificationSent(notification.id, sentVia);
       }
     } catch (error) {
-      console.error('Error processing notifications:', error);
+      logger.error('Error processing notifications', error, { 
+        service: 'NotificationService'
+      });
     }
   }
 
@@ -323,7 +344,9 @@ class NotificationService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching scheduled notifications:', error);
+      logger.error('Error fetching scheduled notifications', error, { 
+        service: 'NotificationService'
+      });
       return [];
     }
   }

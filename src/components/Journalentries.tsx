@@ -43,6 +43,8 @@ import {
   HStack,
 } from "@chakra-ui/react";
 import useLocalstorage from "../hook2/Localstorage";
+import { Edit, Trash2, Plus, Eye } from 'lucide-react';
+import { logger } from '../services/logger';
 
 // Define types for journal entries
 interface JournalEntry {
@@ -283,10 +285,10 @@ const JournalEntriesTable: React.FC<JournalEntriesTableProps> = ({
       try {
         setIsLoading(true);
         const result = await selectJournalEntry();
-        console.log("Fetched entries:", result); // Debugging
+        logger.debug("Fetched entries", { result, component: 'Journalentries' });
         setJournalEntries(result || []);
       } catch (err) {
-        console.error("Error fetching journal entries:", err);
+        logger.error("Error fetching journal entries", err, { component: 'Journalentries' });
         setJournalEntries([]);
       } finally {
         setIsLoading(false);
@@ -387,7 +389,7 @@ const JournalEntriesTable: React.FC<JournalEntriesTableProps> = ({
       onClose();
       toast.success("Entry saved successfully");
     } catch (err) {
-      console.error("Error submitting form:", err);
+      logger.error("Error submitting form", err, { component: 'Journalentries', formData });
       toast.error("Failed to save entry. Please try again.");
     } finally {
       setIsLoading(false);
@@ -402,7 +404,7 @@ const JournalEntriesTable: React.FC<JournalEntriesTableProps> = ({
       setJournalEntries(result || []);
       toast.success("Entry deleted successfully");
     } catch (err) {
-      console.error("Error deleting entry:", err);
+      logger.error("Error deleting entry", err, { entryId, component: 'Journalentries' });
       toast.error("Failed to delete entry. Please try again.");
     }
   };

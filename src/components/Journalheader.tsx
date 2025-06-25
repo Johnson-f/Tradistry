@@ -6,8 +6,9 @@ interface JournalHeaderProps {
   setFilter: (filter: string) => void;
   timeFilter: string;
   setTimeFilter: (filter: string) => void;
+  appUserId: string;
 }
-const JournalHeader: React.FC<JournalHeaderProps> = ({ filter, setFilter, timeFilter, setTimeFilter }) => {
+const JournalHeader: React.FC<JournalHeaderProps> = ({ filter, setFilter, timeFilter, setTimeFilter, appUserId }) => {
   const bg = useColorModeValue("gray.100", "gray.700");
   const color = useColorModeValue("gray.800", "white");
 

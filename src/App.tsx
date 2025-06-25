@@ -22,6 +22,8 @@ import Notes from './Notes'
 import { useSmartNotifications } from './hooks/useSmartNotifications'
 import { useManualReminderNotifications } from './hooks/useManualReminderNotifications'
 import { logger } from './services/logger'
+import { SnapTradeIntegration } from './components/SnapTradeIntegration'
+import { SnapTradeSuccess } from './components/SnapTradeSuccess'
 
 // Type definitions
 interface User {
@@ -226,6 +228,8 @@ const App: React.FC = () => {
                     <Route path="/Calendar.jsx" element={<Calendar />} />
                     <Route path="/Notes" element={<Notes />} />
                     <Route path="/Settings" element={<Settings />} />
+                    <Route path="/SnapTrade" element={<SnapTradeIntegration />} />
+                    <Route path="/snaptrade-success" element={<SnapTradeSuccess />} />
                     <Route path="/Login" element={<Login />} />
                     <Route path="*" element = {<Navigate to="/Dashboard" />} />
                   </Routes>

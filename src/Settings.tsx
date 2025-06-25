@@ -479,6 +479,110 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                   </Box>
               </VStack>
             );
+
+          case 'Language':
+            return (
+              <VStack spacing={6} align="stretch">
+                <Box>
+                  <Text fontSize="xl" mb={2}>Language & Time</Text>
+                  <Text fontSize="sm" color="gray.500" mb={6}>
+                    Customize your language and timezone settings.
+                  </Text>
+                </Box>
+                <FormControl>
+                  <FormLabel fontSize="sm">Language</FormLabel>
+                  <Select value={language} onChange={(e) => setLanguage(e.target.value)}>
+                    <option value="English">English</option>
+                    <option value="Spanish">Spanish</option>
+                    <option value="French">French</option>
+                    <option value="German">German</option>
+                  </Select>
+                </FormControl>
+                <FormControl>
+                  <FormLabel fontSize="sm">Timezone</FormLabel>
+                  <Select value={timezone} onChange={(e) => setTimezone(e.target.value)}>
+                    <option value="(GMT+1:00} Lagos">(GMT+1:00) Lagos</option>
+                    <option value="(GMT-5:00) New York">(GMT-5:00) New York</option>
+                    <option value="(GMT-8:00) Los Angeles">(GMT-8:00) Los Angeles</option>
+                    <option value="(GMT+0:00) London">(GMT+0:00) London</option>
+                  </Select>
+                </FormControl>
+                <FormControl>
+                  <HStack justify="space-between" align="start">
+                    <VStack align="start" spacing={1}>
+                      <FormLabel fontSize="base" fontWeight="medium">
+                        Start week on Monday
+                      </FormLabel>
+                      <Text fontSize="sm" color="gray.500">Begin your calendar week on Monday instead of Sunday</Text>
+                    </VStack>
+                    <Switch
+                      isChecked={startWeekOnMonday}
+                      onChange={(e) => setStartWeekOnMonday(e.target.checked)}
+                    />
+                  </HStack>
+                </FormControl>
+                <FormControl>
+                  <HStack justify="space-between" align="start">
+                    <VStack align="start" spacing={1}>
+                      <FormLabel fontSize="base" fontWeight="medium">
+                        Auto-detect timezone
+                      </FormLabel>
+                      <Text fontSize="sm" color="gray.500">Automatically detect your timezone based on location</Text>
+                    </VStack>
+                    <Switch
+                      isChecked={autoTimezone}
+                      onChange={(e) => setAutoTimezone(e.target.checked)}
+                    />
+                  </HStack>
+                </FormControl>
+              </VStack>
+            );
+
+          case 'Desktop':
+            return (
+              <VStack spacing={6} align="stretch">
+                <Box>
+                  <Text fontSize="xl" mb={2}>Desktop App</Text>
+                  <Text fontSize="sm" color="gray.500" mb={6}>
+                    Manage your desktop application settings.
+                  </Text>
+                </Box>
+                <Box bg={cardBg} p={4} rounded="lg" border="1px" borderColor={borderColor}>
+                  <VStack spacing={4} align="stretch">
+                    <Text fontWeight="medium">Desktop App Status</Text>
+                    <Text fontSize="sm" color="gray.500">
+                      You're currently using the web version of Tradistry.
+                    </Text>
+                    <Button colorScheme="blue" variant="outline" size="sm">
+                      Download Desktop App
+                    </Button>
+                  </VStack>
+                </Box>
+                <FormControl>
+                  <HStack justify="space-between" align="start">
+                    <VStack align="start" spacing={1}>
+                      <FormLabel fontSize="base" fontWeight="medium">
+                        Launch on startup
+                      </FormLabel>
+                      <Text fontSize="sm" color="gray.500">Automatically start the app when you log in</Text>
+                    </VStack>
+                    <Switch defaultChecked={false} />
+                  </HStack>
+                </FormControl>
+                <FormControl>
+                  <HStack justify="space-between" align="start">
+                    <VStack align="start" spacing={1}>
+                      <FormLabel fontSize="base" fontWeight="medium">
+                        Minimize to system tray
+                      </FormLabel>
+                      <Text fontSize="sm" color="gray.500">Keep the app running in the background when closed</Text>
+                    </VStack>
+                    <Switch defaultChecked={true} />
+                  </HStack>
+                </FormControl>
+              </VStack>
+            );
+
       // Add other cases here..
       default: 
         return (
@@ -490,7 +594,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   };
   console.log('currentSessionId', currentSessionId, sessions.map(s => s.id));
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="4xl">
+    <Modal isOpen={isOpen} onClose={onClose} size="5xl">
       <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(4px)" />
       <ModalContent maxH="80vh" bg={cardBg}>
         <Flex h="600px">
@@ -553,4 +657,4 @@ const SettingsContent: React.FC = () => {
   );
 };
 export default Settings;
-export { useTheme, ThemeProvider, NOTIFICATION_SETTINGS_KEY };
+export { useTheme, ThemeProvider, NOTIFICATION_SETTINGS_KEY, SettingsModal };

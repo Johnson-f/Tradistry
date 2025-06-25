@@ -39,3 +39,5 @@ node_modules/
 
 # Exclude the public folder (if you want to ignore it; remove if you want to keep it in git)
 public/
+
+# Exclude the .env file

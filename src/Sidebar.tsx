@@ -40,7 +40,7 @@ import {
   Link as LinkIcon,
   Wallet,
 } from "lucide-react";
-import SettingsModal, { ThemeProvider } from "./Settings"; // New code 
+import { SettingsModal, ThemeProvider } from "./Settings"; // Import SettingsModal
 import { logger } from './services/logger';
 
 // Define props for ModernSidebarItem
@@ -51,6 +51,7 @@ interface ModernSidebarItemProps {
   onClick?: () => void;
   collapsed: boolean;
   small?: boolean;
+  comingSoon?: boolean;
 }
 
 function ModernSidebarItem({
@@ -60,29 +61,47 @@ function ModernSidebarItem({
   onClick,
   collapsed,
   small,
+  comingSoon,
 }: ModernSidebarItemProps) {
   const location = useLocation();
   const isActive = to ? location.pathname === to : false;
 
-  {
-    /*function ModernSidebarItem({ icon: Icon, label, to, collapsed, small }) {
-  const location = useLocation()
-  const isActive = location.pathname === to*/
-  }
-
   return (
-    <Link
-      to={to || "#"}
-      onClick={onClick}
-      className={`flex items-center space-x-3 px-3 py-2 rounded-lg cursor-pointer text-blue-200 hover:bg-white/10 hover:text-white transition-colors ${
-        isActive ? "bg-purple-600 text-white" : ""
-      } ${collapsed ? "justify-center space-x-0" : ""}`}
-    >
-      <Icon className="w-4 h-4" />
-      {!collapsed && (
-        <span className={`${small ? "text-xs" : "text-sm"}`}>{label}</span>
+    <div className="relative">
+      {comingSoon ? (
+        <div
+          className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-blue-200 opacity-60 cursor-not-allowed ${
+            collapsed ? "justify-center space-x-0" : ""
+          }`}
+        >
+          <Icon className="w-4 h-4" />
+          {!collapsed && (
+            <span className={`${small ? "text-xs" : "text-sm"} flex-1`}>{label}</span>
+          )}
+          {!collapsed && comingSoon && (
+            <span className="px-2 py-0.5 text-xs bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-full font-medium animate-pulse">
+              Coming Soon
+            </span>
+          )}
+        </div>
+      ) : (
+        <Link
+          to={to || "#"}
+          onClick={onClick}
+          className={`flex items-center space-x-3 px-3 py-2 rounded-lg cursor-pointer text-blue-200 hover:bg-white/10 hover:text-white transition-colors ${
+            isActive ? "bg-purple-600 text-white" : ""
+          } ${collapsed ? "justify-center space-x-0" : ""}`}
+        >
+          <Icon className="w-4 h-4" />
+          {!collapsed && (
+            <span className={`${small ? "text-xs" : "text-sm"} flex-1`}>{label}</span>
+          )}
+        </Link>
       )}
-    </Link>
+      {collapsed && comingSoon && (
+        <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-orange-500 to-red-500 rounded-full animate-pulse"></div>
+      )}
+    </div>
   );
 }
 
@@ -259,6 +278,13 @@ export default function Sidebar({ onWidthChange }: SidebarProps) {
             collapsed={isModernCollapsed}
           />
           <ModernSidebarItem
+            icon={Wallet}
+            label="Trading Accounts"
+            to="/SnapTrade"
+            collapsed={isModernCollapsed}
+            comingSoon={true}
+          />
+          <ModernSidebarItem
             icon={ChartNoAxesColumnIncreasing}
             label="Performance"
             to="/Performance.jsx"
@@ -270,15 +296,10 @@ export default function Sidebar({ onWidthChange }: SidebarProps) {
             to="/Mindset.jsx"
             collapsed={isModernCollapsed}
           />
-          <ModernSidebarItem
-            icon={Wallet}
-            label="Broker Connections"
-            collapsed={isModernCollapsed}
-          />
         </div>
 
         <div className="space-y-1">
-          {/* Broker Integration section removed */}
+          {/* Additional sidebar items can be added here */}
         </div>
       </nav>
 
@@ -434,7 +455,7 @@ export default function Sidebar({ onWidthChange }: SidebarProps) {
         {isModernCollapsed && (
           <div className="space-y-2 flex flex-col items-center">
             <button
-              onClick={() => navigate("/Settings")} // Open settings page
+              onClick={() => setIsSettingsOpen(true)} // Open settings modal
               title="Settings"
               className="p-2 rounded-lg hover:bg-gray-700 cursor-pointer transition-colors"
             >
@@ -454,7 +475,7 @@ export default function Sidebar({ onWidthChange }: SidebarProps) {
         {!isModernCollapsed && (
           <div className="space-y-1">
             <button
-              onClick={() => navigate("/Settings")} // Open modal instead of navigating
+              onClick={() => setIsSettingsOpen(true)} // Open settings modal
               className="flex items-center space-x-3 px-3 py-2 rounded-lg cursor-pointer text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
               >
                 <Settings className="w-4 h-4" />
@@ -470,6 +491,9 @@ export default function Sidebar({ onWidthChange }: SidebarProps) {
           </div>
         )}
       </div>
+
+      {/* Settings Modal */}
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
     </div>
     </ThemeProvider>
   );

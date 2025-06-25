@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'; 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Helmet } from 'react-helmet'
@@ -156,6 +156,7 @@ const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState<boolean>(true)
   const [sidebarWidth, setSidebarWidth] = useState<number>(256) // Default expanded width
+  const initialCheckDone = useRef(false)
 
   // Use smart notifications
   useSmartNotifications();
@@ -166,10 +167,17 @@ const App: React.FC = () => {
   useEffect(() => {
     supabase.auth.getSession().then((response) => {
       setUser(response.data.session?.user ?? null)
-      setLoading(false)
+      if (!initialCheckDone.current) {
+        setLoading(false)
+        initialCheckDone.current = true
+      }
     })
     const { data: listener } = supabase.auth.onAuthStateChange((_event: string, session: any) => {
       setUser(session?.user ?? null)
+      if (!initialCheckDone.current) {
+        setLoading(false)
+        initialCheckDone.current = true
+      }
     })
     return () => {
       listener.subscription.unsubscribe()

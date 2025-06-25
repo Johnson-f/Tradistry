@@ -350,7 +350,7 @@ const JournalFilter: React.FC<JournalFilterProps> = ({ filter, setFilter, timeFi
 
     return (
         <>
-            <Flex direction="row" ml={4} gap={6} mt={4} wrap="wrap">
+            <Flex direction="row" ml={10} gap={6} mt={4} wrap="wrap">
                 <Box
                     maxW="sm"
                     borderWidth="1px"

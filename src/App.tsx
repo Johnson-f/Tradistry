@@ -71,7 +71,7 @@ async function logUserSession(): Promise<void> {
 
   if (!localSessionId) {
     // Check if session exists in DB
-    const { data, error }: SupabaseResponse<UserSession[]> = await supabase
+    const { data, error } = await supabase
       .from('user_sessions')
       .select('id')
       .eq('id', localSessionId)
@@ -93,18 +93,22 @@ async function logUserSession(): Promise<void> {
       logger.error('Error fetching IP address', error, { component: 'App' });
     }
     
-    const { data, error }: SupabaseResponse<UserSession[]> = await supabase.from('user_sessions').insert({
-      user_id: user.id,
-      device_info: deviceInfo,
-      ip_address,
-    }).select('id').single();
-    
+    const { data, error }: { data: UserSession | null; error: any } = await supabase
+      .from('user_sessions')
+      .insert({
+        user_id: user.id,
+        device_info: deviceInfo,
+        ip_address,
+      })
+      .select('id')
+      .single();
+
     if (error) {
       logger.error('Error inserting session', error, { component: 'App' });
     }
-    
-    if (data && data[0]?.id) {
-      localStorage.setItem('currentSessionId', data[0].id);
+
+    if (data && data.id) {
+      localStorage.setItem('currentSessionId', data.id);
     }
   }
 }
@@ -116,7 +120,7 @@ async function ensureUserProfile(): Promise<void> {
 
   try {
     // Check if profile exists
-    const { error: fetchError }: SupabaseResponse<Profile> = await supabase
+    const { error: fetchError } = await supabase
       .from('profiles')
       .select('id')
       .eq('id', user.id)
@@ -126,7 +130,7 @@ async function ensureUserProfile(): Promise<void> {
     if (fetchError && fetchError.code === 'PGRST116') {
       logger.info('Creating user profile for', { userId: user.id, component: 'App' });
       
-      const { error: createError }: SupabaseResponse<Profile> = await supabase
+      const { error: createError } = await supabase
         .from('profiles')
         .insert({
           id: user.id,
@@ -160,8 +164,8 @@ const App: React.FC = () => {
   useManualReminderNotifications();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }: { data: SessionData }) => {
-      setUser(data.session?.user ?? null)
+    supabase.auth.getSession().then((response) => {
+      setUser(response.data.session?.user ?? null)
       setLoading(false)
     })
     const { data: listener } = supabase.auth.onAuthStateChange((_event: string, session: any) => {
@@ -193,58 +197,54 @@ const App: React.FC = () => {
       <meta name="description" content="A platform for traders to journal their trades and analyze their performance."/>
     </Helmet>
     <ChakraProvider>
-      <ThemeProvider>
-    <Router>
-      <Routes>
-        {!user ? (
-          <>
-            <Route path="/" element={<Landingpage />} />
-            <Route path="/Login" element={<Login />} />
-            <Route path="/SignUp" element={<SignUp />} />
-            <Route path="/ForgotPassword" element={<ForgotPassword />} />
-            <Route path="*" element={<Navigate to="/" />} />
-          </>
-        ) : (
-          <Route
-            path="*"
-            element={
-              <Protectedroute user={user}>
-              <div className='flex'>
-                {/* Pass setSidebarWidth to Sidebar */}
-                <Sidebar onWidthChange={setSidebarWidth} />
-                <main 
-                   className='flex-1 transition-all duration-300'
-                   style={{ marginLeft: sidebarWidth }} // Adjust margin dynamically
-                   >
-                    {/* Remove errorboundary */}
-                  <Routes>
-                    <Route path="/Dashboard" element={<Dashboard />} />
-                    <Route path="/Journal" element={
-
-                      <Journal />
-                      } 
-                      />
-                    <Route path="/Analytics" element={<Analytics />} />
-                    <Route path="/Calendar" element={<Calendar />} />
-                    <Route path="/Notes" element={<Notes />} />
-                    <Route path="/Settings" element={<Settings />} />
-                    <Route path="/SnapTrade" element={<SnapTradeIntegration />} />
-                    <Route path="/snaptrade-success" element={<SnapTradeSuccess />} />
-                    <Route path="/Login" element={<Login />} />
-                    <Route path="*" element = {<Navigate to="/Dashboard" />} />
-                  </Routes>
-                </main>
-              </div>
-              </Protectedroute>
-            }
-            />
-        )}
-      </Routes>
-    </Router>
-    </ThemeProvider>
+      <Router>
+        <Routes>
+          {!user ? (
+            <>
+              <Route path="/" element={<div style={{background: '#fff', color: '#222', minHeight: '100vh'}}><Landingpage /></div>} />
+              <Route path="/Login" element={<div style={{background: '#fff', color: '#222', minHeight: '100vh'}}><Login /></div>} />
+              <Route path="/SignUp" element={<div style={{background: '#fff', color: '#222', minHeight: '100vh'}}><SignUp /></div>} />
+              <Route path="/ForgotPassword" element={<div style={{background: '#fff', color: '#222', minHeight: '100vh'}}><ForgotPassword /></div>} />
+              <Route path="*" element={<Navigate to="/" />} />
+            </>
+          ) : (
+            <Route
+              path="*"
+              element={
+                <ThemeProvider>
+                  <Protectedroute user={user}>
+                  <div className='flex'>
+                    {/* Pass setSidebarWidth to Sidebar */}
+                    <Sidebar onWidthChange={setSidebarWidth} />
+                    <main 
+                       className='flex-1 transition-all duration-300'
+                       style={{ marginLeft: sidebarWidth }} // Adjust margin dynamically
+                       >
+                        {/* Remove errorboundary */}
+                      <Routes>
+                        <Route path="/Dashboard" element={<Dashboard />} />
+                        <Route path="/Journal" element={<Journal />} />
+                        <Route path="/Analytics" element={<Analytics />} />
+                        <Route path="/Calendar" element={<Calendar />} />
+                        <Route path="/Notes" element={<Notes />} />
+                        <Route path="/Settings" element={<Settings />} />
+                        <Route path="/SnapTrade" element={<SnapTradeIntegration />} />
+                        <Route path="/snaptrade-success" element={<SnapTradeSuccess />} />
+                        <Route path="/Login" element={<Login />} />
+                        <Route path="*" element = {<Navigate to="/Dashboard" />} />
+                      </Routes>
+                    </main>
+                  </div>
+                  </Protectedroute>
+                </ThemeProvider>
+              }
+              />
+          )}
+        </Routes>
+      </Router>
     </ChakraProvider>
     </QueryClientProvider>
   )
-}
+};
 
-export default App 
+export default App

@@ -256,45 +256,45 @@ export default function Sidebar({ onWidthChange }: SidebarProps) {
           <ModernSidebarItem
             icon={Calendar}
             label="Calendar"
-            to="/Calendar.jsx"
+            to="/Calendar"
             collapsed={isModernCollapsed}
           />
           <ModernSidebarItem
             icon={NotebookPen}
             label="Journal"
-            to="/Journal.jsx"
+            to="/Journal"
             collapsed={isModernCollapsed}
           />
           <ModernSidebarItem
             icon={ChartLine}
             label="Analytics"
-            to="/Analytics.jsx"
+            to="/Analytics"
             collapsed={isModernCollapsed}
           />
           <ModernSidebarItem
             icon={Library}
             label="Notes"
-            to="/Notes.jsx"
+            to="/Notes"
             collapsed={isModernCollapsed}
-          />
-          <ModernSidebarItem
-            icon={Wallet}
-            label="Trading Accounts"
-            to="/SnapTrade"
-            collapsed={isModernCollapsed}
-            comingSoon={true}
           />
           <ModernSidebarItem
             icon={ChartNoAxesColumnIncreasing}
             label="Performance"
-            to="/Performance.jsx"
+            to="/Performance"
             collapsed={isModernCollapsed}
           />
           <ModernSidebarItem
             icon={BrainCog}
             label="Mindset Lab"
-            to="/Mindset.jsx"
+            to="/Mindset"
             collapsed={isModernCollapsed}
+          />
+           <ModernSidebarItem
+            icon={Wallet}
+            label="Brokerage"
+            to="/SnapTrade"
+            collapsed={isModernCollapsed}
+            comingSoon={true}
           />
         </div>
 

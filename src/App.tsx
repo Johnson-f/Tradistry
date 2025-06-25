@@ -219,13 +219,13 @@ const App: React.FC = () => {
                     {/* Remove errorboundary */}
                   <Routes>
                     <Route path="/Dashboard" element={<Dashboard />} />
-                    <Route path="/Journal.jsx" element={
+                    <Route path="/Journal" element={
 
                       <Journal />
                       } 
                       />
                     <Route path="/Analytics" element={<Analytics />} />
-                    <Route path="/Calendar.jsx" element={<Calendar />} />
+                    <Route path="/Calendar" element={<Calendar />} />
                     <Route path="/Notes" element={<Notes />} />
                     <Route path="/Settings" element={<Settings />} />
                     <Route path="/SnapTrade" element={<SnapTradeIntegration />} />

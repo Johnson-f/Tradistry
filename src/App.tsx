@@ -15,7 +15,7 @@ import SignUp from './components/SignUp'
 import { supabase } from './supabaseClient'
 import Protectedroute from './components/Protectedroute'
 import ForgotPassword from './components/ForgotPassword'
-import { RingLoader } from 'react-spinners'
+import { DominoSpinner } from 'react-spinners-kit'
 import { ChakraProvider } from '@chakra-ui/react'
 import { ThemeProvider } from './Settings'
 import Notes from './Notes'
@@ -193,7 +193,8 @@ const App: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <RingLoader color="#100e0e" size={64} loading={true} />
+      {/*<DominoSpinner color="#100e0e" size={64} loading={true} />*/}
+      <DominoSpinner size={100} color="#686769" loading={true} />
     </div>
     )
   }

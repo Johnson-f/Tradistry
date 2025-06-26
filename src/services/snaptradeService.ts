@@ -1,190 +1,161 @@
-import { supabase } from '../supabaseClient'
+import { supabase } from '../supabaseClient';
+import { 
+  SnapTradeOAuthInitResponse, 
+  SnapTradeConnection, 
+  SnapTradeOAuthLog 
+} from '../types/snaptrade';
 
-interface SnapTradeResponse<T = any> {
-  success: boolean
-  data?: T
-  error?: string
-  cached?: boolean
-}
+export class SnapTradeService {
+  private static instance: SnapTradeService;
+  private supabaseUrl: string;
 
-class SnapTradeService {
-  private async getAuthHeaders() {
-    const { data: { session } } = await supabase.auth.getSession()
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${session?.access_token}`
-    }
+  private constructor() {
+    this.supabaseUrl = 'https://xzzpqryqndcfrwltlfpj.supabase.co';
   }
 
-  async registerUser(userId: string): Promise<SnapTradeResponse> {
+  public static getInstance(): SnapTradeService {
+    if (!SnapTradeService.instance) {
+      SnapTradeService.instance = new SnapTradeService();
+    }
+    return SnapTradeService.instance;
+  }
+
+  /**
+   * Get the current user's session token
+   */
+  private async getSessionToken(): Promise<string | null> {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token || null;
+  }
+
+  /**
+   * Initiate SnapTrade OAuth flow
+   */
+  async initiateOAuth(): Promise<string | null> {
     try {
-      const response = await fetch('/api/snaptrade-register', {
-        method: 'POST',
-        headers: await this.getAuthHeaders(),
-        body: JSON.stringify({ userId })
-      })
-
-      return await response.json()
-    } catch (error) {
-      return {
-        success: false,
-        error: 'Network error occurred'
+      const token = await this.getSessionToken();
+      if (!token) {
+        throw new Error('No authentication token available');
       }
+
+      const response = await fetch(`${this.supabaseUrl}/functions/v1/snaptrade-oauth-init`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to initiate OAuth');
+      }
+
+      const data: SnapTradeOAuthInitResponse = await response.json();
+      
+      if (!data.success || !data.loginUrl) {
+        throw new Error(data.error || 'Failed to get login URL');
+      }
+
+      return data.loginUrl;
+    } catch (error) {
+      console.error('Error initiating SnapTrade OAuth:', error);
+      throw error;
     }
   }
 
-  async fetchAccounts(userId: string): Promise<SnapTradeResponse> {
-    try {
-      const response = await fetch('/api/snaptrade-accounts', {
-        method: 'POST',
-        headers: await this.getAuthHeaders(),
-        body: JSON.stringify({ userId })
-      })
-
-      return await response.json()
-    } catch (error) {
-      return {
-        success: false,
-        error: 'Network error occurred'
-      }
-    }
-  }
-
-  async fetchAccountData(
-    userId: string, 
-    accountId: string, 
-    dataType: 'balance' | 'holdings'
-  ): Promise<SnapTradeResponse> {
-    try {
-      const response = await fetch('/api/snaptrade-holdings', {
-        method: 'POST',
-        headers: await this.getAuthHeaders(),
-        body: JSON.stringify({ 
-          userId, 
-          accountId, 
-          dataType 
-        })
-      })
-
-      return await response.json()
-    } catch (error) {
-      return {
-        success: false,
-        error: 'Network error occurred'
-      }
-    }
-  }
-
-  async disconnectAccount(userId: string, accountId: string): Promise<SnapTradeResponse> {
-    try {
-      const response = await fetch('/api/snaptrade-disconnect', {
-        method: 'POST',
-        headers: await this.getAuthHeaders(),
-        body: JSON.stringify({ userId, accountId })
-      })
-
-      return await response.json()
-    } catch (error) {
-      return {
-        success: false,
-        error: 'Network error occurred'
-      }
-    }
-  }
-
-  async getQuota(userId: string): Promise<SnapTradeResponse> {
-    try {
-      const response = await fetch('/api/snaptrade-quota', {
-        method: 'POST',
-        headers: await this.getAuthHeaders(),
-        body: JSON.stringify({ userId })
-      })
-
-      return await response.json()
-    } catch (error) {
-      return {
-        success: false,
-        error: 'Network error occurred'
-      }
-    }
-  }
-
-  // Helper method to check if user has connected accounts
-  async hasConnectedAccounts(userId: string): Promise<boolean> {
+  /**
+   * Get the current user's SnapTrade connection
+   */
+  async getConnection(): Promise<SnapTradeConnection | null> {
     try {
       const { data, error } = await supabase
-        .from('connected_accounts')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('connection_status', 'active')
-        .limit(1)
+        .from('snaptrade_connections')
+        .select('*')
+        .single();
 
-      if (error) throw error
-      return (data?.length || 0) > 0
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // No connection found
+          return null;
+        }
+        throw error;
+      }
+
+      return data;
     } catch (error) {
-      console.error('Error checking connected accounts:', error)
-      return false
+      console.error('Error fetching SnapTrade connection:', error);
+      throw error;
     }
   }
 
-  // Helper method to get cached account data
-  async getCachedAccountData(accountId: string, dataType: 'balance' | 'holdings') {
+  /**
+   * Disconnect SnapTrade account
+   */
+  async disconnect(): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('snaptrade_connections')
+        .delete()
+        .neq('id', ''); // Delete all connections for current user
+
+      if (error) {
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error disconnecting SnapTrade:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get OAuth logs for the current user
+   */
+  async getOAuthLogs(limit: number = 10): Promise<SnapTradeOAuthLog[]> {
     try {
       const { data, error } = await supabase
-        .from('account_data')
-        .select('data, last_updated')
-        .eq('connected_account_id', accountId)
-        .eq('data_type', dataType)
-        .single()
+        .from('snaptrade_oauth_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(limit);
 
-      if (error) throw error
-      return data
+      if (error) {
+        throw error;
+      }
+
+      return data || [];
     } catch (error) {
-      console.error('Error getting cached data:', error)
-      return null
+      console.error('Error fetching OAuth logs:', error);
+      throw error;
     }
   }
 
-  // Helper method to format currency
-  formatCurrency(amount: number): string {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount)
-  }
-
-  // Helper method to format percentage
-  formatPercentage(value: number): string {
-    return `${(value * 100).toFixed(2)}%`
-  }
-
-  // Helper method to get account status color
-  getStatusColor(status: string): string {
-    switch (status) {
-      case 'active':
-        return 'text-green-600'
-      case 'inactive':
-        return 'text-gray-600'
-      case 'error':
-        return 'text-red-600'
-      default:
-        return 'text-gray-600'
+  /**
+   * Check if user has an active SnapTrade connection
+   */
+  async hasActiveConnection(): Promise<boolean> {
+    try {
+      const connection = await this.getConnection();
+      return connection?.status === 'active';
+    } catch (error) {
+      console.error('Error checking active connection:', error);
+      return false;
     }
   }
 
-  // Helper method to get status icon
-  getStatusIcon(status: string): string {
-    switch (status) {
-      case 'active':
-        return '🟢'
-      case 'inactive':
-        return '⚪'
-      case 'error':
-        return '🔴'
-      default:
-        return '⚪'
+  /**
+   * Refresh connection status
+   */
+  async refreshConnection(): Promise<SnapTradeConnection | null> {
+    try {
+      // This could be extended to call SnapTrade API to verify connection status
+      return await this.getConnection();
+    } catch (error) {
+      console.error('Error refreshing connection:', error);
+      throw error;
     }
   }
 }
 
-export const snaptradeService = new SnapTradeService() 
+// Export singleton instance
+export const snapTradeService = SnapTradeService.getInstance(); 

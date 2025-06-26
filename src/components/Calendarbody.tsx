@@ -485,7 +485,7 @@ const DateDetailModal = ({ isOpen, onClose, selectedDate, dayData }: any) => {
             {/* Loading State */}
             {calendarDataLoading && (
               <Flex justify="center" py={4}>
-                <Spinner color="blue.400" />
+                <Spinner color={useColorModeValue("blue.500", "blue.300")} />
               </Flex>
             )}
 
@@ -893,7 +893,7 @@ const Calendarbody = () => {
       
       {loading && (
         <Flex justify="center" mt={4}>
-          <Spinner color="blue.400" />
+          <Spinner color={useColorModeValue("blue.500", "blue.300")} />
         </Flex>
       )}
 

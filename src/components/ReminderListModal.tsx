@@ -21,6 +21,7 @@ import {
   Spinner,
   Divider,
   Flex,
+  useColorModeValue,
 } from '@chakra-ui/react';
 import { 
   Bell, 
@@ -201,7 +202,7 @@ export const ReminderListModal: React.FC<ReminderListModalProps> = ({
           <ModalBody>
             {loading ? (
               <Flex justify="center" py={8}>
-                <Spinner color="blue.400" />
+                <Spinner color={useColorModeValue("blue.500", "blue.300")} />
               </Flex>
             ) : (
               <VStack spacing={6} align="stretch">

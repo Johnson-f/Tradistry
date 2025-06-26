@@ -27,8 +27,37 @@ async function logUserSession() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     
-    // Device info
-    const deviceInfo = `${navigator.platform} - ${navigator.userAgent}`;
+    // Enhanced device detection
+    const userAgent = navigator.userAgent;
+    const platform = navigator.platform;
+    
+    // Detect browser
+    let browser = 'Unknown';
+    if (userAgent.includes('Chrome')) browser = 'Chrome';
+    else if (userAgent.includes('Firefox')) browser = 'Firefox';
+    else if (userAgent.includes('Safari')) browser = 'Safari';
+    else if (userAgent.includes('Edge')) browser = 'Edge';
+    else if (userAgent.includes('Opera')) browser = 'Opera';
+    
+    // Detect OS
+    let os = 'Unknown';
+    if (userAgent.includes('Windows')) os = 'Windows';
+    else if (userAgent.includes('Mac')) os = 'macOS';
+    else if (userAgent.includes('Linux')) os = 'Linux';
+    else if (userAgent.includes('Android')) os = 'Android';
+    else if (userAgent.includes('iOS')) os = 'iOS';
+    
+    // Detect device type
+    let deviceType: 'desktop' | 'mobile' | 'tablet' = 'desktop';
+    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)) {
+      deviceType = 'mobile';
+      if (/iPad|Android(?=.*\bMobile\b)(?=.*\bSafari\b)/i.test(userAgent)) {
+        deviceType = 'tablet';
+      }
+    }
+    
+    const deviceInfo = `${os} - ${browser} on ${deviceType}`;
+    
     // Get IP address (optional)
     let ip_address = '';
     try {
@@ -43,12 +72,18 @@ async function logUserSession() {
     user_id: user.id,
     device_info: deviceInfo,
     ip_address,
+    user_agent: userAgent,
+    platform,
+    browser,
+    os,
+    device_type: deviceType,
+    last_active: new Date().toISOString(),
    }).select('id').then(({ data }) => {
     if (data && data[0]?.id) {
         localStorage.setItem('currentSessionId', data[0].id)
     }
    });
-};
+}
 
 export default function Login() {
     const [email, setEmail] = useState('')

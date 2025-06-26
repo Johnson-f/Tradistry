@@ -1,5 +1,5 @@
 import React, { useState, useEffect, createContext, useContext, ReactNode, JSX } from 'react'
-import { User, Palette, Bell, Globe, Shield, Monitor, X, ChevronDown } from 'lucide-react'
+import { User, Palette, Bell, Globe, Shield, Monitor, X, ChevronDown, Link } from 'lucide-react'
 import { Settings as SettingsIcon } from 'lucide-react'
 import { supabase } from './supabaseClient'
 import {
@@ -27,6 +27,10 @@ import {
 } from '@chakra-ui/react'
 import NotificationSettingsComponent from './components/NotificationSettings'
 import { useNotificationSettings } from './hooks/useNotificationSettings'
+import SnapTradeConnectionStatus from './components/SnapTradeConnectionStatus'
+import { SnapTradeConnection } from './types/snaptrade'
+import ThemePreview from './components/ThemePreview'
+import { ColorThemeName } from './components/Theme'
 
 // Types
 type ThemeType = 'light' | 'dark' | 'system';
@@ -34,9 +38,11 @@ type ThemeType = 'light' | 'dark' | 'system';
 interface ThemeContextType {
   isDark: boolean;
   theme: ThemeType;
+  colorTheme: ColorThemeName;
   colorMode: 'light' | 'dark';
   toggleColorMode: () => void;
   handleThemeChange: (newTheme: ThemeType) => void;
+  handleColorThemeChange: (newColorTheme: ColorThemeName) => void;
   bgColor: string;
   textColor: string;
   cardBg: string;
@@ -77,6 +83,107 @@ interface SettingSection {
   label: string;
 }
 
+// Enhanced device session interface
+interface DeviceSession {
+  id: string;
+  user_id: string;
+  device_info: string;
+  ip_address: string;
+  user_agent: string;
+  platform: string;
+  browser: string;
+  os: string;
+  device_type: 'desktop' | 'mobile' | 'tablet';
+  location?: string;
+  is_current_session: boolean;
+  last_active: string;
+  created_at: string;
+  status: 'active' | 'inactive' | 'expired';
+}
+
+// Device detection utilities
+const getDeviceInfo = () => {
+  const userAgent = navigator.userAgent;
+  const platform = navigator.platform;
+  
+  // Detect browser
+  let browser = 'Unknown';
+  if (userAgent.includes('Chrome')) browser = 'Chrome';
+  else if (userAgent.includes('Firefox')) browser = 'Firefox';
+  else if (userAgent.includes('Safari')) browser = 'Safari';
+  else if (userAgent.includes('Edge')) browser = 'Edge';
+  else if (userAgent.includes('Opera')) browser = 'Opera';
+  
+  // Detect OS
+  let os = 'Unknown';
+  if (userAgent.includes('Windows')) os = 'Windows';
+  else if (userAgent.includes('Mac')) os = 'macOS';
+  else if (userAgent.includes('Linux')) os = 'Linux';
+  else if (userAgent.includes('Android')) os = 'Android';
+  else if (userAgent.includes('iOS')) os = 'iOS';
+  
+  // Detect device type
+  let deviceType: 'desktop' | 'mobile' | 'tablet' = 'desktop';
+  if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)) {
+    deviceType = 'mobile';
+    if (/iPad|Android(?=.*\bMobile\b)(?=.*\bSafari\b)/i.test(userAgent)) {
+      deviceType = 'tablet';
+    }
+  }
+  
+  return {
+    userAgent,
+    platform,
+    browser,
+    os,
+    deviceType,
+    deviceInfo: `${os} - ${browser} on ${deviceType}`
+  };
+};
+
+// Get location from IP
+const getLocationFromIP = async (ip: string): Promise<string> => {
+  try {
+    const response = await fetch(`https://ipapi.co/${ip}/json/`);
+    const data = await response.json();
+    if (data.city && data.country) {
+      return `${data.city}, ${data.country}`;
+    }
+    return 'Unknown location';
+  } catch (error) {
+    return 'Unknown location';
+  }
+};
+
+// Format relative time
+const formatRelativeTime = (dateString: string): string => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+  
+  if (diffInMinutes < 1) return 'Just now';
+  if (diffInMinutes < 60) return `${diffInMinutes} minutes ago`;
+  if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)} hours ago`;
+  return `${Math.floor(diffInMinutes / 1440)} days ago`;
+};
+
+// Get device icon based on type
+const getDeviceIcon = (deviceType: string, os: string) => {
+  switch (deviceType) {
+    case 'mobile':
+      return '📱';
+    case 'tablet':
+      return '📱';
+    case 'desktop':
+      if (os === 'macOS') return '🖥️';
+      if (os === 'Windows') return '💻';
+      if (os === 'Linux') return '🐧';
+      return '💻';
+    default:
+      return '💻';
+  }
+};
+
 // Create Theme context that works with Chakra UI
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
@@ -86,6 +193,10 @@ const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const [theme, setTheme] = useState<ThemeType>(() => {
     const savedTheme = localStorage.getItem('theme-preference') as ThemeType | null;
     return savedTheme || 'system';
+  });
+  const [colorTheme, setColorTheme] = useState<ColorThemeName>(() => {
+    const savedColorTheme = localStorage.getItem('color-theme-preference') as ColorThemeName | null;
+    return savedColorTheme || 'default';
   });
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
 
@@ -98,6 +209,8 @@ const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   useEffect(() => {
     const initializeTheme = () => {
       const savedTheme = localStorage.getItem('theme-preference') as ThemeType | null;
+      const savedColorTheme = localStorage.getItem('color-theme-preference') as ColorThemeName | null;
+      
       if (savedTheme) {
         setTheme(savedTheme);
         setColorMode(savedTheme === 'dark' ? 'dark' : savedTheme === 'light' ? 'light' : 'system');
@@ -106,6 +219,11 @@ const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         setTheme('system');
         setColorMode(prefersDark ? 'dark' : 'light');
       }
+      
+      if (savedColorTheme) {
+        setColorTheme(savedColorTheme);
+      }
+      
       setIsLoaded(true);
     };
     initializeTheme();
@@ -116,6 +234,11 @@ const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     if (!isLoaded) return;
     localStorage.setItem('theme-preference', theme);
   }, [theme, isLoaded]);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    localStorage.setItem('color-theme-preference', colorTheme);
+  }, [colorTheme, isLoaded]);
  
   const handleThemeChange = (newTheme: ThemeType): void => {
     setTheme(newTheme);
@@ -132,6 +255,11 @@ const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       }
     }
   };
+
+  const handleColorThemeChange = (newColorTheme: ColorThemeName): void => {
+    setColorTheme(newColorTheme);
+  };
+
   if (!isLoaded) {
     return (
       <Box minH="100vh" display="flex" alignItems="center" justifyContent="center" bg="gray.100">
@@ -143,9 +271,11 @@ const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const themeStyles: ThemeContextType = {
     isDark: colorMode === 'dark',
     theme,
+    colorTheme,
     colorMode, 
-    toggleColorMode, // Add toggleColorMode to themeStyles
+    toggleColorMode,
     handleThemeChange,
+    handleColorThemeChange,
     bgColor,
     textColor,
     cardBg,
@@ -166,9 +296,9 @@ const useTheme = (): ThemeContextType => {
 const NOTIFICATION_SETTINGS_KEY = 'notifications';
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
-  const { theme, handleThemeChange, isDark, cardBg, borderColor, colorMode, toggleColorMode } = useTheme();
+  const { theme, colorTheme, handleThemeChange, handleColorThemeChange, isDark, cardBg, borderColor, colorMode, toggleColorMode } = useTheme();
   const [activeSection, setActiveSection] = useState<string>('Account');
-  const [sessions, setSessions] = useState<any[]>([]);
+  const [sessions, setSessions] = useState<DeviceSession[]>([]);
   const [language, setLanguage] = useState<string>('English');
   const [notifications, setNotifications] = useState<NotificationSettings>(() => {
     // Load from localStorage or use defaults
@@ -232,18 +362,42 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     // eslint-disable-next-line
   }, []);
 
-  // Fetch user sessions from supabase
+  // Enhanced session fetching with device info
   useEffect(() => {
     const fetchSessions = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+      
       const { data, error } = await supabase
         .from('user_sessions')
         .select('*')
         .eq('user_id', user.id)
         .order('last_active', { ascending: false });
-        if (!error && data) setSessions(data);
+        
+      if (!error && data) {
+        const currentSessionId = localStorage.getItem('currentSessionId');
+        
+        // Enhance sessions with additional device info and location
+        const enhancedSessions = await Promise.all(
+          data.map(async (session: any) => {
+            const location = await getLocationFromIP(session.ip_address);
+            const deviceInfo = getDeviceInfo();
+            
+            return {
+              ...session,
+              location,
+              is_current_session: session.id === currentSessionId,
+              status: session.last_active ? 
+                (new Date().getTime() - new Date(session.last_active).getTime() < 30 * 60 * 1000 ? 'active' : 'inactive') : 
+                'expired'
+            };
+          })
+        );
+        
+        setSessions(enhancedSessions);
+      }
     };
+    
     if (activeSection === 'Security') fetchSessions();
   }, [activeSection]);
   
@@ -251,6 +405,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     { id: 'Account', icon: User, label: 'Account' },
     { id: 'Appearance', icon: Palette, label: 'Appearance' },
     { id: 'Notifications', icon: Bell, label: 'Notifications' },
+    { id: 'Integrations', icon: Link, label: 'Integrations' },
     { id: 'Language', icon: Globe, label: 'Language & Time' },
     { id: 'Security', icon: Shield, label: 'Security' },
     { id: 'Desktop', icon: Monitor, label: 'Desktop app' },
@@ -260,8 +415,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
   const [autoTimezone, setAutoTimezone] = useState<boolean>(true);
   const [timezone, setTimezone] = useState<string>('(GMT+1:00} Lagos');
   const [userData, setUserData] = useState<SupabaseUser | null>(null);
+  const [isThemeCustomizationOpen, setIsThemeCustomizationOpen] = useState<boolean>(false);
   const toast = useToast();
-  const currentSessionId = localStorage.getItem('currentSessionId'); // Get current session ID from localStorage (new code)
+  const currentSessionId = localStorage.getItem('currentSessionId');
 
   // Fetch user data from supabase
   useEffect(() => {
@@ -385,203 +541,515 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
           </VStack>
         );
         
-      case 'Appearance':
+      case 'Integrations':
         return (
           <VStack spacing={6} align="stretch">
             <Box>
-              <Text fontSize="xl" mb={2}>Appearance</Text>
+              <Text fontSize="xl" mb={2}>Trading Account Integrations</Text>
               <Text fontSize="sm" color="gray.500" mb={6}>
-                Customize how your application looks on your device.
+                Connect your trading accounts to automatically import portfolio data and trade history.
               </Text>
             </Box>
-            <FormControl>
-              <HStack justify="space-between" align="start">
-                <VStack align="start" spacing={1}>
-                  <FormLabel fontSize="base" fontWeight="medium" mb={8}>
-                    Theme
-                  </FormLabel>
-                  <Text fontSize="sm" color="gray.500"></Text>
-                </VStack>
-                <Box position="relative">
-                  <Select
-                    value={theme}
-                    onChange={(e) => handleThemeChange(e.target.value as ThemeType)}
-                    w="200px"
+            
+            {/* SnapTrade Integration */}
+            <Box bg={cardBg} p={6} rounded="lg" border="1px" borderColor={borderColor}>
+              <VStack spacing={4} align="stretch">
+                <HStack spacing={3}>
+                  <Box w={10} h={10} bg="linear-gradient(135deg, #667eea, #764ba2)" rounded="lg" display="flex" alignItems="center" justifyContent="center">
+                    <Text color="white" fontWeight="bold" fontSize="lg">S</Text>
+                  </Box>
+                  <VStack align="start" spacing={0}>
+                    <Text fontWeight="semibold">SnapTrade</Text>
+                    <Text fontSize="sm" color="gray.500">Connect your brokerage accounts</Text>
+                  </VStack>
+                </HStack>
+                
+                <Divider />
+                
+                <SnapTradeConnectionStatus 
+                  onConnectionChange={(connection: SnapTradeConnection | null) => {
+                    if (connection) {
+                      toast({
+                        title: 'Connected Successfully',
+                        description: 'Your SnapTrade account has been connected.',
+                        status: 'success',
+                        duration: 3000,
+                        isClosable: true,
+                      });
+                    } else {
+                      toast({
+                        title: 'Disconnected',
+                        description: 'Your SnapTrade account has been disconnected.',
+                        status: 'info',
+                        duration: 3000,
+                        isClosable: true,
+                      });
+                    }
+                  }}
+                />
+                
+                <Text fontSize="sm" color="gray.500">
+                  SnapTrade allows you to securely connect your brokerage accounts and automatically import your portfolio data, trade history, and account balances.
+                </Text>
+              </VStack>
+            </Box>
+            
+            {/* Future integrations can be added here */}
+            <Box bg={cardBg} p={6} rounded="lg" border="1px" borderColor={borderColor} opacity={0.6}>
+              <VStack spacing={4} align="stretch">
+                <HStack spacing={3}>
+                  <Box w={10} h={10} bg="gray.300" rounded="lg" display="flex" alignItems="center" justifyContent="center">
+                    <Text color="gray.600" fontWeight="bold" fontSize="lg">+</Text>
+                  </Box>
+                  <VStack align="start" spacing={0}>
+                    <Text fontWeight="semibold" color="gray.600">More Integrations</Text>
+                    <Text fontSize="sm" color="gray.500">Coming soon</Text>
+                  </VStack>
+                </HStack>
+                <Text fontSize="sm" color="gray.500">
+                  We're working on adding support for more trading platforms and data providers.
+                </Text>
+              </VStack>
+            </Box>
+          </VStack>
+        );
+
+        case 'Appearance':
+          return (
+            <VStack spacing={6} align="stretch">
+              <Box>
+                <Text fontSize="xl" mb={2}>Appearance</Text>
+                <Text fontSize="sm" color="gray.500" mb={6}>
+                  Customize how your application looks on your device.
+                </Text>
+              </Box>
+              
+              {/* Basic Theme Selection */}
+              <FormControl>
+                <HStack justify="space-between" align="start">
+                  <VStack align="start" spacing={1}>
+                    <FormLabel fontSize="base" fontWeight="medium" mb={0}>
+                      Theme Mode
+                    </FormLabel>
+                    <Text fontSize="sm" color="gray.500">Choose between light, dark, or system theme</Text>
+                  </VStack>
+                  <Box position="relative">
+                    <Select
+                      value={theme}
+                      onChange={(e) => handleThemeChange(e.target.value as ThemeType)}
+                      w="200px"
                     >
                       <option value="system">Use system settings</option>
                       <option value="light">Light mode</option>
                       <option value="dark">Dark mode</option>
                     </Select>
-                </Box>
-              </HStack>
-            </FormControl>
-          </VStack>
-        );
+                  </Box>
+                </HStack>
+              </FormControl>
+
+              <Divider />
+
+              {/* Color Theme Selection */}
+              <ThemePreview
+                selectedTheme={colorTheme}
+                onThemeSelect={handleColorThemeChange}
+                currentMode={colorMode}
+              />
+            </VStack>
+          );
 
         case 'Notifications':
           return <NotificationSettingsComponent />;
 
-          case 'Security':
-            return (
-              <VStack spacing={6} align="stretch">
-                <Box>
-                  <Text fontSize="xl" mb={2}>Device Sessions</Text>
-                  <Text fontSize="sm" color="gray.500" mb={6}>
-                    These devices are currently logged in to your account.
+        case 'Security':
+          return (
+            <VStack spacing={6} align="stretch">
+              <Box>
+                <Text fontSize="2xl" mb={2} color={useColorModeValue('gray.800', 'gray.100')}>
+                  Security
+                </Text>
+                <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.400')} mb={6}>
+                  Manage your account security and privacy settings.
+                </Text>
+              </Box>
+
+              {/* Password Management */}
+              <Box bg={cardBg} p={6} rounded="lg" border="1px" borderColor={borderColor}>
+                <VStack spacing={4} align="stretch">
+                  <Text fontSize="lg" fontWeight="semibold" color={useColorModeValue('gray.800', 'gray.100')}>
+                    Password
+                  </Text>
+                  <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.400')}>
+                    Keep your account secure with a strong password.
                   </Text>
                   <Button
-                  colorScheme="red"
-                  size="sm"
-                  mb={4}
-                  onClick={async () => {
-                    const { data: { user } } = await supabase.auth.getUser();
-                    if (!user || !currentSessionId) return;
-                    await supabase
-                    .from('user_sessions')
-                    .delete()
-                    .eq('user_id', user.id)
-                    .neq('id', currentSessionId);
-                    setSessions(sessions.filter(s => s.id === currentSessionId));
+                    colorScheme="blue"
+                    variant="outline"
+                    onClick={resetPassword}
+                    leftIcon={<Shield size={16} />}
+                    _hover={{
+                      bg: useColorModeValue('blue.50', 'blue.900'),
+                      borderColor: useColorModeValue('blue.300', 'blue.400'),
                     }}
+                  >
+                    Reset Password
+                  </Button>
+                </VStack>
+              </Box>
+
+              {/* Enhanced Device Sessions */}
+              <Box bg={cardBg} p={6} rounded="lg" border="1px" borderColor={borderColor}>
+                <VStack spacing={4} align="stretch">
+                  <HStack justify="space-between" align="center">
+                    <VStack align="start" spacing={1}>
+                      <Text fontSize="lg" fontWeight="semibold" color={useColorModeValue('gray.800', 'gray.100')}>
+                        Device Sessions
+                      </Text>
+                      <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.400')}>
+                        {sessions.length} device{sessions.length !== 1 ? 's' : ''} logged in
+                      </Text>
+                    </VStack>
+                    <Button
+                      colorScheme="red"
+                      size="sm"
+                      onClick={async () => {
+                        const { data: { user } } = await supabase.auth.getUser();
+                        if (!user || !currentSessionId) return;
+                        await supabase
+                        .from('user_sessions')
+                        .delete()
+                        .eq('user_id', user.id)
+                        .neq('id', currentSessionId);
+                        setSessions(sessions.filter(s => s.id === currentSessionId));
+                        toast({
+                          title: 'Success',
+                          description: 'Logged out of all other devices.',
+                          status: 'success',
+                          duration: 3000,
+                          isClosable: true,
+                        });
+                      }}
+                      leftIcon={<Shield size={16} />}
                     >
                       Log out all other devices
-                      </Button>
-                  <Box>
-                    {sessions.length === 0 && (
-                      <Text color="gray.400">No active sessions found.</Text>
-                    )}
-                    {sessions.map((session) => (
-                      <Box key={session.id} p={3} mb={2} borderWidth={1} borderRadius="md">
-                        <Text fontWeight="medium">{session.device_info}</Text>
-                        <Text fontSize="sm" color="gray.500">
-                          IP: {session.ip_address || 'Unknown'}<br />
-                          Logged in: {new Date(session.created_at).toLocaleString()}
-                        </Text>
-                        {/* Show "Log out" only for this session */}
-                        {session.id === currentSessionId && (
-                          <Button
-                          colorScheme="red"
-                          size="xs"
-                          mt={2}
-                          onClick={async () => {
-                            await supabase.from('user_sessions').delete().eq('id', session.id);
-                            setSessions(sessions.filter(s => s.id !== session.id));
-                            // Optionally, also sign out the user
-                            // // await supabase.auth.signOut();
-                            }}
-                            >
-                              Log out from this device
-                              </Button>
-                            )}
-                        </Box>
-                    ))}
-                  </Box>
-                  </Box>
-              </VStack>
-            );
-
-          case 'Language':
-            return (
-              <VStack spacing={6} align="stretch">
-                <Box>
-                  <Text fontSize="xl" mb={2}>Language & Time</Text>
-                  <Text fontSize="sm" color="gray.500" mb={6}>
-                    Customize your language and timezone settings.
-                  </Text>
-                </Box>
-                <FormControl>
-                  <FormLabel fontSize="sm">Language</FormLabel>
-                  <Select value={language} onChange={(e) => setLanguage(e.target.value)}>
-                    <option value="English">English</option>
-                    <option value="Spanish">Spanish</option>
-                    <option value="French">French</option>
-                    <option value="German">German</option>
-                  </Select>
-                </FormControl>
-                <FormControl>
-                  <FormLabel fontSize="sm">Timezone</FormLabel>
-                  <Select value={timezone} onChange={(e) => setTimezone(e.target.value)}>
-                    <option value="(GMT+1:00} Lagos">(GMT+1:00) Lagos</option>
-                    <option value="(GMT-5:00) New York">(GMT-5:00) New York</option>
-                    <option value="(GMT-8:00) Los Angeles">(GMT-8:00) Los Angeles</option>
-                    <option value="(GMT+0:00) London">(GMT+0:00) London</option>
-                  </Select>
-                </FormControl>
-                <FormControl>
-                  <HStack justify="space-between" align="start">
-                    <VStack align="start" spacing={1}>
-                      <FormLabel fontSize="base" fontWeight="medium">
-                        Start week on Monday
-                      </FormLabel>
-                      <Text fontSize="sm" color="gray.500">Begin your calendar week on Monday instead of Sunday</Text>
-                    </VStack>
-                    <Switch
-                      isChecked={startWeekOnMonday}
-                      onChange={(e) => setStartWeekOnMonday(e.target.checked)}
-                    />
-                  </HStack>
-                </FormControl>
-                <FormControl>
-                  <HStack justify="space-between" align="start">
-                    <VStack align="start" spacing={1}>
-                      <FormLabel fontSize="base" fontWeight="medium">
-                        Auto-detect timezone
-                      </FormLabel>
-                      <Text fontSize="sm" color="gray.500">Automatically detect your timezone based on location</Text>
-                    </VStack>
-                    <Switch
-                      isChecked={autoTimezone}
-                      onChange={(e) => setAutoTimezone(e.target.checked)}
-                    />
-                  </HStack>
-                </FormControl>
-              </VStack>
-            );
-
-          case 'Desktop':
-            return (
-              <VStack spacing={6} align="stretch">
-                <Box>
-                  <Text fontSize="xl" mb={2}>Desktop App</Text>
-                  <Text fontSize="sm" color="gray.500" mb={6}>
-                    Manage your desktop application settings.
-                  </Text>
-                </Box>
-                <Box bg={cardBg} p={4} rounded="lg" border="1px" borderColor={borderColor}>
-                  <VStack spacing={4} align="stretch">
-                    <Text fontWeight="medium">Desktop App Status</Text>
-                    <Text fontSize="sm" color="gray.500">
-                      You're currently using the web version of Tradistry.
-                    </Text>
-                    <Button colorScheme="blue" variant="outline" size="sm">
-                      Download Desktop App
                     </Button>
+                  </HStack>
+                  
+                  {sessions.length === 0 && (
+                    <Box textAlign="center" py={8}>
+                      <Text color={useColorModeValue('gray.500', 'gray.400')}>
+                        No active sessions found.
+                      </Text>
+                    </Box>
+                  )}
+                  
+                  <VStack spacing={3} align="stretch">
+                    {sessions.map((session) => (
+                      <Box 
+                        key={session.id} 
+                        p={4} 
+                        borderWidth={1} 
+                        borderRadius="lg"
+                        borderColor={session.is_current_session ? 
+                          useColorModeValue('blue.200', 'blue.600') : 
+                          useColorModeValue('gray.200', 'gray.600')
+                        }
+                        bg={session.is_current_session ? 
+                          useColorModeValue('blue.50', 'blue.900') : 
+                          useColorModeValue('white', 'gray.800')
+                        }
+                        position="relative"
+                        _hover={{
+                          borderColor: session.is_current_session ? 
+                            useColorModeValue('blue.300', 'blue.500') : 
+                            useColorModeValue('gray.300', 'gray.500'),
+                          transform: 'translateY(-1px)',
+                          boxShadow: useColorModeValue('sm', 'lg'),
+                        }}
+                        transition="all 0.2s ease-in-out"
+                      >
+                        {session.is_current_session && (
+                          <Box
+                            position="absolute"
+                            top={2}
+                            right={2}
+                            bg={useColorModeValue('blue.500', 'blue.400')}
+                            color="white"
+                            px={2}
+                            py={1}
+                            borderRadius="full"
+                            fontSize="xs"
+                            fontWeight="medium"
+                            boxShadow="sm"
+                          >
+                            Current
+                          </Box>
+                        )}
+                        
+                        <HStack spacing={3} align="start">
+                          <Text fontSize="2xl" filter={useColorModeValue('none', 'brightness(1.2)')}>
+                            {getDeviceIcon(session.device_type || 'desktop', session.os || 'Unknown')}
+                          </Text>
+                          
+                          <VStack align="start" spacing={1} flex={1}>
+                            <HStack spacing={2} align="center">
+                              <Text 
+                                fontWeight="semibold" 
+                                fontSize="sm"
+                                color={useColorModeValue('gray.800', 'gray.100')}
+                              >
+                                {session.device_info || `${session.os || 'Unknown'} - ${session.browser || 'Unknown'}`}
+                              </Text>
+                              <Box
+                                w={2}
+                                h={2}
+                                borderRadius="full"
+                                bg={session.status === 'active' ? 
+                                  useColorModeValue('green.400', 'green.300') : 
+                                  session.status === 'inactive' ? 
+                                  useColorModeValue('yellow.400', 'yellow.300') : 
+                                  useColorModeValue('gray.400', 'gray.500')
+                                }
+                                boxShadow={useColorModeValue('none', '0 0 4px rgba(0,0,0,0.3)')}
+                              />
+                            </HStack>
+                            
+                            <Text 
+                              fontSize="xs" 
+                              color={useColorModeValue('gray.600', 'gray.400')}
+                              fontFamily="mono"
+                            >
+                              IP: {session.ip_address || 'Unknown'}
+                            </Text>
+                            
+                            {session.location && session.location !== 'Unknown location' && (
+                              <Text 
+                                fontSize="xs" 
+                                color={useColorModeValue('gray.600', 'gray.400')}
+                                display="flex"
+                                alignItems="center"
+                                gap={1}
+                              >
+                                <span>📍</span>
+                                {session.location}
+                              </Text>
+                            )}
+                            
+                            <Text 
+                              fontSize="xs" 
+                              color={useColorModeValue('gray.600', 'gray.400')}
+                            >
+                              Last active: {formatRelativeTime(session.last_active || session.created_at)}
+                            </Text>
+                            
+                            <Text 
+                              fontSize="xs" 
+                              color={useColorModeValue('gray.600', 'gray.400')}
+                            >
+                              Logged in: {new Date(session.created_at).toLocaleDateString()} at {new Date(session.created_at).toLocaleTimeString()}
+                            </Text>
+                          </VStack>
+                        </HStack>
+                        
+                        {session.is_current_session && (
+                          <Button
+                            colorScheme="red"
+                            size="xs"
+                            mt={3}
+                            variant="outline"
+                            _hover={{
+                              bg: useColorModeValue('red.50', 'red.900'),
+                              borderColor: useColorModeValue('red.300', 'red.400'),
+                            }}
+                            onClick={async () => {
+                              await supabase.from('user_sessions').delete().eq('id', session.id);
+                              setSessions(sessions.filter(s => s.id !== session.id));
+                              toast({
+                                title: 'Success',
+                                description: 'Logged out from this device.',
+                                status: 'success',
+                                duration: 3000,
+                                isClosable: true,
+                              });
+                            }}
+                          >
+                            Log out from this device
+                          </Button>
+                        )}
+                      </Box>
+                    ))}
                   </VStack>
-                </Box>
-                <FormControl>
-                  <HStack justify="space-between" align="start">
-                    <VStack align="start" spacing={1}>
-                      <FormLabel fontSize="base" fontWeight="medium">
-                        Launch on startup
-                      </FormLabel>
-                      <Text fontSize="sm" color="gray.500">Automatically start the app when you log in</Text>
-                    </VStack>
-                    <Switch defaultChecked={false} />
-                  </HStack>
-                </FormControl>
-                <FormControl>
-                  <HStack justify="space-between" align="start">
-                    <VStack align="start" spacing={1}>
-                      <FormLabel fontSize="base" fontWeight="medium">
-                        Minimize to system tray
-                      </FormLabel>
-                      <Text fontSize="sm" color="gray.500">Keep the app running in the background when closed</Text>
-                    </VStack>
-                    <Switch defaultChecked={true} />
-                  </HStack>
-                </FormControl>
-              </VStack>
-            );
+                </VStack>
+              </Box>
+
+              {/* Account Deletion */}
+              <Box bg={cardBg} p={6} rounded="lg" border="1px" borderColor={borderColor}>
+                <VStack spacing={4} align="stretch">
+                  <Text fontSize="lg" fontWeight="semibold" color={useColorModeValue('red.600', 'red.400')}>
+                    Danger Zone
+                  </Text>
+                  <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.400')}>
+                    Once you delete your account, there is no going back. Please be certain.
+                  </Text>
+                  <Button
+                    colorScheme="red"
+                    variant="outline"
+                    onClick={async () => {
+                      if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+                        const { data: { user } } = await supabase.auth.getUser();
+                        if (user) {
+                          // Delete user data from profiles table
+                          await supabase
+                            .from('profiles')
+                            .delete()
+                            .eq('id', user.id);
+                          
+                          // Delete user sessions
+                          await supabase
+                            .from('user_sessions')
+                            .delete()
+                            .eq('user_id', user.id);
+                          
+                          // Delete the user account
+                          const { error } = await supabase.auth.admin.deleteUser(user.id);
+                          
+                          if (error) {
+                            toast({
+                              title: 'Error',
+                              description: 'Failed to delete account. Please try again.',
+                              status: 'error',
+                              duration: 3000,
+                              isClosable: true,
+                            });
+                          } else {
+                            toast({
+                              title: 'Account Deleted',
+                              description: 'Your account has been permanently deleted.',
+                              status: 'success',
+                              duration: 3000,
+                              isClosable: true,
+                            });
+                            // Redirect to landing page or sign out
+                            window.location.href = '/';
+                          }
+                        }
+                      }
+                    }}
+                    leftIcon={<Shield size={16} />}
+                    _hover={{
+                      bg: useColorModeValue('red.50', 'red.900'),
+                      borderColor: useColorModeValue('red.300', 'red.400'),
+                    }}
+                  >
+                    Delete Account
+                  </Button>
+                </VStack>
+              </Box>
+            </VStack>
+          );
+
+        case 'Language':
+          return (
+            <VStack spacing={6} align="stretch">
+              <Box>
+                <Text fontSize="xl" mb={2}>Language & Time</Text>
+                <Text fontSize="sm" color="gray.500" mb={6}>
+                  Customize your language and timezone settings.
+                </Text>
+              </Box>
+              <FormControl>
+                <FormLabel fontSize="sm">Language</FormLabel>
+                <Select value={language} onChange={(e) => setLanguage(e.target.value)}>
+                  <option value="English">English</option>
+                  <option value="Spanish">Spanish</option>
+                  <option value="French">French</option>
+                  <option value="German">German</option>
+                </Select>
+              </FormControl>
+              <FormControl>
+                <FormLabel fontSize="sm">Timezone</FormLabel>
+                <Select value={timezone} onChange={(e) => setTimezone(e.target.value)}>
+                  <option value="(GMT+1:00} Lagos">(GMT+1:00) Lagos</option>
+                  <option value="(GMT-5:00) New York">(GMT-5:00) New York</option>
+                  <option value="(GMT-8:00) Los Angeles">(GMT-8:00) Los Angeles</option>
+                  <option value="(GMT+0:00) London">(GMT+0:00) London</option>
+                </Select>
+              </FormControl>
+              <FormControl>
+                <HStack justify="space-between" align="start">
+                  <VStack align="start" spacing={1}>
+                    <FormLabel fontSize="base" fontWeight="medium">
+                      Start week on Monday
+                    </FormLabel>
+                    <Text fontSize="sm" color="gray.500">Begin your calendar week on Monday instead of Sunday</Text>
+                  </VStack>
+                  <Switch
+                    isChecked={startWeekOnMonday}
+                    onChange={(e) => setStartWeekOnMonday(e.target.checked)}
+                  />
+                </HStack>
+              </FormControl>
+              <FormControl>
+                <HStack justify="space-between" align="start">
+                  <VStack align="start" spacing={1}>
+                    <FormLabel fontSize="base" fontWeight="medium">
+                      Auto-detect timezone
+                    </FormLabel>
+                    <Text fontSize="sm" color="gray.500">Automatically detect your timezone based on location</Text>
+                  </VStack>
+                  <Switch
+                    isChecked={autoTimezone}
+                    onChange={(e) => setAutoTimezone(e.target.checked)}
+                  />
+                </HStack>
+              </FormControl>
+            </VStack>
+          );
+
+        case 'Desktop':
+          return (
+            <VStack spacing={6} align="stretch">
+              <Box>
+                <Text fontSize="xl" mb={2}>Desktop App</Text>
+                <Text fontSize="sm" color="gray.500" mb={6}>
+                  Manage your desktop application settings.
+                </Text>
+              </Box>
+              <Box bg={cardBg} p={4} rounded="lg" border="1px" borderColor={borderColor}>
+                <VStack spacing={4} align="stretch">
+                  <Text fontWeight="medium">Desktop App Status</Text>
+                  <Text fontSize="sm" color="gray.500">
+                    You're currently using the web version of Tradistry.
+                  </Text>
+                  <Button colorScheme="blue" variant="outline" size="sm">
+                    Download Desktop App
+                  </Button>
+                </VStack>
+              </Box>
+              <FormControl>
+                <HStack justify="space-between" align="start">
+                  <VStack align="start" spacing={1}>
+                    <FormLabel fontSize="base" fontWeight="medium">
+                      Launch on startup
+                    </FormLabel>
+                    <Text fontSize="sm" color="gray.500">Automatically start the app when you log in</Text>
+                  </VStack>
+                  <Switch defaultChecked={false} />
+                </HStack>
+              </FormControl>
+              <FormControl>
+                <HStack justify="space-between" align="start">
+                  <VStack align="start" spacing={1}>
+                    <FormLabel fontSize="base" fontWeight="medium">
+                      Minimize to system tray
+                    </FormLabel>
+                    <Text fontSize="sm" color="gray.500">Keep the app running in the background when closed</Text>
+                  </VStack>
+                  <Switch defaultChecked={true} />
+                </HStack>
+              </FormControl>
+            </VStack>
+          );
 
       // Add other cases here..
       default: 
